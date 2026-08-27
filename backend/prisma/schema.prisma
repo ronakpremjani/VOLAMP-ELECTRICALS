@@ -1,0 +1,115 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Customer {
+  id             String    @id @default(uuid())
+  name           String
+  email          String?
+  mobile         String
+  address        String
+  companyName    String?
+  gstNumber      String?
+  city           String    @default("Mumbai")
+  state          String    @default("Maharashtra")
+  totalPaid      Float     @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  orders         Order[]
+  paymentHistory Payment[]
+}
+
+model Payment {
+  id         String   @id @default(uuid())
+  amount     Float
+  date       DateTime @default(now())
+  method     String   @default("Cash") // 'Cash', 'UPI', 'Bank Transfer', 'Cheque'
+  notes      String?
+  
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id          String      @id @default(uuid())
+  name        String
+  category    String
+  brand       String
+  sku         String      @unique
+  unit        String
+  price       Float
+  stock       Int
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id               String      @id @default(uuid())
+  orderNumber      String      @unique
+  
+  customerId       String
+  customer         Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  orderStatus      String      @default("Pending") // 'Pending', 'Confirmed', 'Processing', 'Dispatched', 'Delivered', 'Cancelled'
+  
+  subtotal         Float       @default(0)
+  discount         Float       @default(0)
+  gstRate          Float       @default(18)
+  gstAmount        Float       @default(0)
+  grandTotal       Float       @default(0)
+  
+  amountReceived   Float       @default(0)
+  balanceAmount    Float       @default(0)
+  paymentStatus    String      @default("Pending") // 'Pending', 'Partially Paid', 'Paid'
+  
+  salesperson      String?     @default("Store Admin")
+  notes            String?
+  
+  orderDate        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  items            OrderItem[]
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+  name      String?
+  quantity  Int
+  unitPrice Float
+  amount    Float
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      String   @default("info") // 'info', 'success', 'warning', 'error'
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CompanySetting {
+  id              String   @id @default(uuid())
+  enterpriseName  String   @default("Volamp Electricals")
+  factoryPremises String   @default("Electrical Market Complex, Andheri East, Mumbai")
+  gstin           String   @default("27AABCV8910Q1ZS")
+  phone           String?  @default("+91 22 2840 9900")
+  email           String?  @default("sales@volamp.com")
+  invoiceTerms    String?  @default("Subject to Mumbai Jurisdiction. Goods once sold will not be taken back.")
+  orderPrefix     String   @default("VOL-")
+  currency        String   @default("₹")
+  updatedAt       DateTime @updatedAt
+}
