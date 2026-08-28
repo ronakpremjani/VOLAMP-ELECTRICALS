@@ -79,9 +79,16 @@ export default function App() {
 
   // Search & Filter States
   const [customerSearch, setCustomerSearch] = useState('');
+  const [customerCity, setCustomerCity] = useState('All');
+  const [customerHasBalance, setCustomerHasBalance] = useState('All');
+  const [customerSortBy, setCustomerSortBy] = useState('recent');
+  const [customerFilters, setCustomerFilters] = useState({ cities: [] });
+
   const [productSearch, setProductSearch] = useState('');
   const [productCategory, setProductCategory] = useState('All');
   const [productBrand, setProductBrand] = useState('All');
+  const [productLowStock, setProductLowStock] = useState('All');
+  const [productSortBy, setProductSortBy] = useState('name_asc');
 
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('All');
@@ -116,20 +123,27 @@ export default function App() {
   const loadCustomers = useCallback(async (showToast = false) => {
     try {
       setLoadingCustomers(true);
-      const res = await getCustomers(customerSearch);
+      const params = { search: customerSearch };
+      if (customerCity !== 'All') params.city = customerCity;
+      if (customerHasBalance === 'Yes') params.hasBalance = 'true';
+      
+      const res = await getCustomers(params);
       setCustomers(res.data || []);
+      setCustomerFilters(res.filters || { cities: [] });
       if (showToast) toast.success('Customers updated');
     } catch (err) {
       if (showToast) toast.error('Failed to load customers');
     } finally {
       setLoadingCustomers(false);
     }
-  }, [customerSearch]);
+  }, [customerSearch, customerCity, customerHasBalance]);
 
   const loadProducts = useCallback(async (showToast = false) => {
     try {
       setLoadingProducts(true);
-      const res = await getProducts({ search: productSearch, category: productCategory, brand: productBrand });
+      const params = { search: productSearch, category: productCategory, brand: productBrand };
+      if (productLowStock === 'Yes') params.lowStock = 'true';
+      const res = await getProducts(params);
       setProducts(res.data || []);
       
       const cats = new Set(res.data?.map(p => p.category).filter(Boolean));
@@ -142,7 +156,7 @@ export default function App() {
     } finally {
       setLoadingProducts(false);
     }
-  }, [productSearch, productCategory, productBrand]);
+  }, [productSearch, productCategory, productBrand, productLowStock]);
 
   const loadOrders = useCallback(async (showToast = false) => {
     try {
@@ -415,8 +429,13 @@ export default function App() {
               <CustomerListView
                 customers={customers}
                 loading={loadingCustomers}
+                filters={customerFilters}
                 searchTerm={customerSearch}
                 setSearchTerm={setCustomerSearch}
+                selectedCity={customerCity}
+                setSelectedCity={setCustomerCity}
+                hasBalance={customerHasBalance}
+                setHasBalance={setCustomerHasBalance}
                 onOpenAddModal={() => {
                   setSelectedCustomerForEdit(null);
                   setIsCustomerModalOpen(true);
@@ -443,6 +462,8 @@ export default function App() {
                 setSelectedCategory={setProductCategory}
                 selectedBrand={productBrand}
                 setSelectedBrand={setProductBrand}
+                lowStock={productLowStock}
+                setLowStock={setProductLowStock}
                 onOpenAddModal={() => {
                   setSelectedProductForEdit(null);
                   setIsProductModalOpen(true);

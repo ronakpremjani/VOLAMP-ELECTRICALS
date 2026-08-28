@@ -46,7 +46,6 @@ const getCached = async (url, config = {}) => {
     }
   } catch (e) {}
 
-  // Caching temporarily disabled for development so you can see requests in the Network tab
   const res = await api.get(url, config);
   
   try {
@@ -59,7 +58,6 @@ const getCached = async (url, config = {}) => {
   return res;
 };
 
-
 // ── Dashboard ──────────────────────────────────────────────
 export const getDashboardStats = async (params = {}) => {
   const res = await getCached('/dashboard/stats', { params });
@@ -67,8 +65,8 @@ export const getDashboardStats = async (params = {}) => {
 };
 
 // ── Customers ──────────────────────────────────────────────
-export const getCustomers = async (search = '') => {
-  const res = await getCached('/customers', { params: { search } });
+export const getCustomers = async (params = {}) => {
+  const res = await getCached('/customers', { params });
   return res.data;
 };
 

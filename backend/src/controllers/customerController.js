@@ -8,19 +8,23 @@ function cleanString(value) {
 // GET /api/customers - List all customers with computed Total Orders and Total Order Value
 const getCustomers = async (req, res) => {
   try {
-    const { search } = req.query;
+    const { search, city, hasBalance } = req.query;
 
-    const where = search
-      ? {
-          OR: [
-            { name: { contains: search } },
-            { companyName: { contains: search } },
-            { mobile: { contains: search } },
-            { city: { contains: search } },
-            { gstNumber: { contains: search } },
-          ],
-        }
-      : {};
+    const where = {};
+    
+    if (city && city !== 'All') {
+      where.city = city;
+    }
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search } },
+        { companyName: { contains: search } },
+        { mobile: { contains: search } },
+        { city: { contains: search } },
+        { gstNumber: { contains: search } },
+      ];
+    }
 
     const customers = await prisma.customer.findMany({
       where,
@@ -57,7 +61,24 @@ const getCustomers = async (req, res) => {
       };
     });
 
-    res.json({ success: true, count: computedCustomers.length, data: computedCustomers });
+    let finalCustomers = computedCustomers;
+    if (hasBalance === 'true') {
+      finalCustomers = finalCustomers.filter(c => c.totalBalanceDue > 0);
+    }
+
+    if (req.query.sortBy === 'name_asc') {
+      finalCustomers.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (req.query.sortBy === 'billed_desc') {
+      finalCustomers.sort((a, b) => b.totalOrderValue - a.totalOrderValue);
+    } else if (req.query.sortBy === 'balance_desc') {
+      finalCustomers.sort((a, b) => b.totalBalanceDue - a.totalBalanceDue);
+    }
+    
+    // Extract unique cities for the frontend filter
+    const allCustomers = await prisma.customer.findMany({ select: { city: true } });
+    const cities = Array.from(new Set(allCustomers.map(c => c.city).filter(Boolean))).sort();
+
+    res.json({ success: true, count: finalCustomers.length, data: finalCustomers, filters: { cities } });
   } catch (error) {
     console.error('Error fetching customers:', error);
     res.status(500).json({ success: false, message: 'Server error while fetching customers' });

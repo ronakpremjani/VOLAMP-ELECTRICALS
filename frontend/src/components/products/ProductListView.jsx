@@ -1,5 +1,5 @@
-import React from 'react';
-import { Search, Plus, Edit2, Trash2, CheckCircle2, AlertTriangle, X, Package, Tag, Layers } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Plus, Edit2, Trash2, CheckCircle2, AlertTriangle, X, Package, Tag, Layers, Filter } from 'lucide-react';
 
 export default function ProductListView({
   products = [],
@@ -11,10 +11,14 @@ export default function ProductListView({
   setSelectedCategory,
   selectedBrand,
   setSelectedBrand,
+  lowStock,
+  setLowStock,
   onOpenAddModal,
   onOpenEditModal,
   onDeleteProduct,
 }) {
+  const [showFilters, setShowFilters] = useState(false);
+
   return (
     <div>
       {/* Header & Filter Toolbar */}
@@ -58,31 +62,105 @@ export default function ProductListView({
             )}
           </div>
 
-          <select
-            className="filter-select"
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-          >
-            <option value="All">All Categories</option>
-            {(filters?.categories || []).map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+          <div style={{ position: 'relative' }}>
+            <button 
+              className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'}`} 
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter size={15} />
+              <span>Filters</span>
+              {(selectedCategory !== 'All' || selectedBrand !== 'All' || lowStock !== 'All') && (
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: showFilters ? '#fff' : 'var(--primary)', marginLeft: 2 }}></div>
+              )}
+            </button>
 
-          <select
-            className="filter-select"
-            value={selectedBrand}
-            onChange={(e) => setSelectedBrand(e.target.value)}
-          >
-            <option value="All">All Brands</option>
-            {(filters?.brands || []).map((brand) => (
-              <option key={brand} value={brand}>
-                {brand}
-              </option>
-            ))}
-          </select>
+            {showFilters && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                right: 0,
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                boxShadow: 'var(--shadow-lg)',
+                borderRadius: 'var(--radius-md)',
+                padding: '1.25rem',
+                minWidth: '240px',
+                zIndex: 50,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}>
+                <div style={{ 
+                  fontWeight: 700, 
+                  fontSize: '0.85rem', 
+                  borderBottom: '1px solid var(--border-color)', 
+                  paddingBottom: '0.75rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span>Filter Catalog</span>
+                  <button onClick={() => setShowFilters(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)' }}>
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Category</label>
+                  <select
+                    className="form-select"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                  >
+                    <option value="All">All Categories</option>
+                    {(filters?.categories || []).map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Brand</label>
+                  <select
+                    className="form-select"
+                    value={selectedBrand}
+                    onChange={(e) => setSelectedBrand(e.target.value)}
+                  >
+                    <option value="All">All Brands</option>
+                    {(filters?.brands || []).map((brand) => (
+                      <option key={brand} value={brand}>
+                        {brand}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Stock Level</label>
+                  <select
+                    className="form-select"
+                    value={lowStock}
+                    onChange={(e) => setLowStock(e.target.value)}
+                  >
+                    <option value="All">All Stock Levels</option>
+                    <option value="Yes">Low Stock / Out of Stock</option>
+                  </select>
+                </div>
+
+                { (selectedCategory !== 'All' || selectedBrand !== 'All' || lowStock !== 'All') && (
+                  <button 
+                    className="btn btn-secondary btn-sm" 
+                    onClick={() => { setSelectedCategory('All'); setSelectedBrand('All'); setLowStock('All'); }}
+                    style={{ marginTop: '0.25rem', width: '100%', justifyContent: 'center' }}
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
           <button className="btn btn-primary" onClick={onOpenAddModal}>
             <Plus size={16} />

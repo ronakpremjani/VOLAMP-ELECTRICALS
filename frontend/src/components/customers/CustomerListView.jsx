@@ -1,16 +1,23 @@
-import React from 'react';
-import { Search, Plus, Edit2, Trash2, Eye, Building2, Phone, MapPin, X, FileSpreadsheet, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Plus, Edit2, Trash2, Eye, Building2, Phone, MapPin, X, FileSpreadsheet, User, Filter } from 'lucide-react';
 
 export default function CustomerListView({
   customers = [],
   loading = false,
+  filters = { cities: [] },
   searchTerm,
   setSearchTerm,
+  selectedCity,
+  setSelectedCity,
+  hasBalance,
+  setHasBalance,
   onOpenAddModal,
   onOpenEditModal,
   onOpenDetailsModal,
   onDeleteCustomer,
 }) {
+  const [showFilters, setShowFilters] = useState(false);
+
   return (
     <div>
       {/* Search & Actions Bar */}
@@ -51,6 +58,88 @@ export default function CustomerListView({
               >
                 <X size={14} />
               </button>
+            )}
+          </div>
+
+          <div style={{ position: 'relative' }}>
+            <button 
+              className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'}`} 
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter size={15} />
+              <span>Filters</span>
+              {(selectedCity !== 'All' || hasBalance !== 'All') && (
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: showFilters ? '#fff' : 'var(--primary)', marginLeft: 2 }}></div>
+              )}
+            </button>
+
+            {showFilters && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                right: 0,
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                boxShadow: 'var(--shadow-lg)',
+                borderRadius: 'var(--radius-md)',
+                padding: '1.25rem',
+                minWidth: '240px',
+                zIndex: 50,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}>
+                <div style={{ 
+                  fontWeight: 700, 
+                  fontSize: '0.85rem', 
+                  borderBottom: '1px solid var(--border-color)', 
+                  paddingBottom: '0.75rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span>Filter Customers</span>
+                  <button onClick={() => setShowFilters(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)' }}>
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">By City</label>
+                  <select
+                    className="form-select"
+                    value={selectedCity}
+                    onChange={(e) => setSelectedCity(e.target.value)}
+                  >
+                    <option value="All">All Cities</option>
+                    {(filters?.cities || []).map((city) => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">By Payment Status</label>
+                  <select
+                    className="form-select"
+                    value={hasBalance}
+                    onChange={(e) => setHasBalance(e.target.value)}
+                  >
+                    <option value="All">All Balances</option>
+                    <option value="Yes">Has Balance Due</option>
+                  </select>
+                </div>
+
+                { (selectedCity !== 'All' || hasBalance !== 'All') && (
+                  <button 
+                    className="btn btn-secondary btn-sm" 
+                    onClick={() => { setSelectedCity('All'); setHasBalance('All'); }}
+                    style={{ marginTop: '0.25rem', width: '100%', justifyContent: 'center' }}
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
