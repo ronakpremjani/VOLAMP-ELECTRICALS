@@ -1,12 +1,17 @@
 import React from 'react';
 import { LayoutDashboard, ShoppingCart, Users, Package, Zap, UserCircle2 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-export default function Sidebar({ currentTab, setCurrentTab, stats }) {
+export default function Sidebar({ stats }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname;
+
   const navItems = [
-    { id: 'dashboard',  label: 'Dashboard',       icon: LayoutDashboard },
-    { id: 'orders',     label: 'Orders & Billing', icon: ShoppingCart,  count: stats?.kpis?.totalOrders },
-    { id: 'customers',  label: 'Customers',        icon: Users,         count: stats?.inventory?.totalCustomers },
-    { id: 'products',   label: 'Product Catalog',  icon: Package,       count: stats?.inventory?.totalProducts },
+    { path: '/dashboard', label: 'Dashboard',       icon: LayoutDashboard },
+    { path: '/orders',    label: 'Orders & Billing', icon: ShoppingCart,  count: stats?.kpis?.totalOrders },
+    { path: '/customers', label: 'Customers',        icon: Users,         count: stats?.inventory?.totalCustomers },
+    { path: '/products',  label: 'Product Catalog',  icon: Package,       count: stats?.inventory?.totalProducts },
   ];
 
   return (
@@ -26,12 +31,12 @@ export default function Sidebar({ currentTab, setCurrentTab, stats }) {
       <nav className="sidebar-nav">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = currentTab === item.id;
+          const isActive = currentPath.startsWith(item.path);
           return (
             <button
-              key={item.id}
+              key={item.path}
               className={`nav-item ${isActive ? 'active' : ''}`}
-              onClick={() => setCurrentTab(item.id)}
+              onClick={() => navigate(item.path)}
             >
               <Icon size={17} style={{ flexShrink: 0 }} />
               <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
@@ -58,8 +63,8 @@ export default function Sidebar({ currentTab, setCurrentTab, stats }) {
       {/* Profile — pinned to bottom above footer */}
       <div style={{ padding: '0 0.75rem 0.5rem' }}>
         <button
-          className={`nav-item ${currentTab === 'profile' ? 'active' : ''}`}
-          onClick={() => setCurrentTab('profile')}
+          className={`nav-item ${currentPath.startsWith('/profile') ? 'active' : ''}`}
+          onClick={() => navigate('/profile')}
           style={{ width: '100%' }}
         >
           <UserCircle2 size={17} style={{ flexShrink: 0 }} />
@@ -80,3 +85,4 @@ export default function Sidebar({ currentTab, setCurrentTab, stats }) {
     </aside>
   );
 }
+

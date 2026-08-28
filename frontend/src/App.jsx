@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import { io } from 'socket.io-client';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import LoginPage from './components/auth/LoginPage';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
@@ -58,7 +59,10 @@ export default function App() {
     setAuthUser(null);
   };
 
-  const [currentTab, setCurrentTab] = useState('dashboard');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname;
+
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Data States
@@ -98,112 +102,103 @@ export default function App() {
   const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState(null);
   const [dashboardDate, setDashboardDate] = useState('');
 
-  // Fetch Dashboard Stats
-  const loadDashboardStats = useCallback(async () => {
+  // Callbacks
+  const loadDashboardStats = useCallback(async (showToast = false) => {
     try {
-      const res = await getDashboardStats({ date: dashboardDate });
-      if (res.success) {
-        setStats(res.data);
-      }
+      const res = await getDashboardStats(dashboardDate);
+      setStats(res.data);
+      if (showToast) toast.success('Dashboard updated');
     } catch (err) {
-      console.error('Error loading dashboard stats:', err);
+      if (showToast) toast.error('Failed to load dashboard');
     }
   }, [dashboardDate]);
 
-  // Fetch Customers
-  const loadCustomers = useCallback(async () => {
+  const loadCustomers = useCallback(async (showToast = false) => {
     try {
       setLoadingCustomers(true);
       const res = await getCustomers(customerSearch);
-      if (res.success) {
-        setCustomers(res.data);
-      }
+      setCustomers(res.data || []);
+      if (showToast) toast.success('Customers updated');
     } catch (err) {
-      console.error('Error loading customers:', err);
+      if (showToast) toast.error('Failed to load customers');
     } finally {
       setLoadingCustomers(false);
     }
   }, [customerSearch]);
 
-  // Fetch Products
-  const loadProducts = useCallback(async () => {
+  const loadProducts = useCallback(async (showToast = false) => {
     try {
       setLoadingProducts(true);
-      const res = await getProducts({
-        search: productSearch,
-        category: productCategory,
-        brand: productBrand,
-      });
-      if (res.success) {
-        setProducts(res.data);
-        if (res.filters) {
-          setProductFilters(res.filters);
-        }
-      }
+      const res = await getProducts({ search: productSearch, category: productCategory, brand: productBrand });
+      setProducts(res.data || []);
+      
+      const cats = new Set(res.data?.map(p => p.category).filter(Boolean));
+      const brnds = new Set(res.data?.map(p => p.brand).filter(Boolean));
+      setProductFilters({ categories: Array.from(cats), brands: Array.from(brnds) });
+
+      if (showToast) toast.success('Products updated');
     } catch (err) {
-      console.error('Error loading products:', err);
+      if (showToast) toast.error('Failed to load products');
     } finally {
       setLoadingProducts(false);
     }
   }, [productSearch, productCategory, productBrand]);
 
-  // Fetch Orders
-  const loadOrders = useCallback(async () => {
+  const loadOrders = useCallback(async (showToast = false) => {
     try {
       setLoadingOrders(true);
-      const res = await getOrders({
-        search: orderSearch,
-        orderStatus: orderStatusFilter,
-        paymentStatus: orderPaymentFilter,
-        date: orderDate,
-      });
-      if (res.success) {
-        setOrders(res.data);
-      }
+      const res = await getOrders({ search: orderSearch, status: orderStatusFilter, payment: orderPaymentFilter, date: orderDate });
+      setOrders(res.data || []);
+      if (showToast) toast.success('Orders updated');
     } catch (err) {
-      console.error('Error loading orders:', err);
+      if (showToast) toast.error('Failed to load orders');
     } finally {
       setLoadingOrders(false);
     }
   }, [orderSearch, orderStatusFilter, orderPaymentFilter, orderDate]);
 
-  // Global Refresh (quiet = true avoids toast flash for background syncs)
-  const handleRefreshAll = async (quiet = false) => {
+  const handleRefreshAll = async () => {
     setIsRefreshing(true);
-    await Promise.all([
+    clearCache();
+    await Promise.allSettled([
       loadDashboardStats(),
       loadCustomers(),
       loadProducts(),
       loadOrders(),
     ]);
+    toast.success('All data refreshed from server');
     setIsRefreshing(false);
-    if (!quiet) toast.success('Database synchronized');
   };
 
-  // Use a ref so the socket callback always sees latest handlers
-  // without needing to reconnect when state changes
-  const handleRefreshAllRef = useRef(handleRefreshAll);
-  useEffect(() => { handleRefreshAllRef.current = handleRefreshAll; });
-
-  // Real-time automatic updates — connect ONCE, never reconnect on state changes
+  // Socket setup
+  const loadFns = useRef({ loadDashboardStats, loadCustomers, loadProducts, loadOrders });
   useEffect(() => {
+    loadFns.current = { loadDashboardStats, loadCustomers, loadProducts, loadOrders };
+  });
+
+  useEffect(() => {
+    if (!authUser) return; // don't connect socket if not logged in
+
     const socket = io('http://localhost:5000', {
-      transports: ['websocket'],
       reconnectionDelay: 2000,
       reconnectionAttempts: 5,
     });
+    
     let timeoutId;
-
-    socket.on('connect', () => {
-      console.log('Real-time sync connected');
-    });
-
-    socket.on('data_changed', (event) => {
-      console.log('Background data change detected:', event);
+    socket.on('data_updated', (data) => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        clearCache();
-        handleRefreshAllRef.current(true);
+        const { entity } = data;
+        const fns = loadFns.current;
+        if (entity === 'customer') { fns.loadCustomers(); fns.loadDashboardStats(); }
+        else if (entity === 'product') { fns.loadProducts(); fns.loadDashboardStats(); }
+        else if (entity === 'order') { fns.loadOrders(); fns.loadDashboardStats(); }
+        else {
+          fns.loadDashboardStats();
+          fns.loadCustomers();
+          fns.loadProducts();
+          fns.loadOrders();
+        }
       }, 500);
     });
 
@@ -211,7 +206,7 @@ export default function App() {
       socket.disconnect();
       clearTimeout(timeoutId);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // empty array ensures socket only connects once on mount
 
   // Initial Load + reload data when user logs in
   useEffect(() => {
@@ -222,13 +217,13 @@ export default function App() {
     loadOrders();
   }, [authUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync tab data on change
+  // Sync route data on navigation
   useEffect(() => {
-    if (currentTab === 'dashboard') loadDashboardStats();
-    if (currentTab === 'customers') loadCustomers();
-    if (currentTab === 'products') loadProducts();
-    if (currentTab === 'orders') loadOrders();
-  }, [currentTab, loadDashboardStats, loadCustomers, loadProducts, loadOrders]);
+    if (currentPath === '/dashboard' || currentPath === '/') loadDashboardStats();
+    if (currentPath === '/customers') loadCustomers();
+    if (currentPath === '/products') loadProducts();
+    if (currentPath === '/orders') loadOrders();
+  }, [currentPath, loadDashboardStats, loadCustomers, loadProducts, loadOrders]);
 
   // Customer Handlers
   const handleSaveCustomer = async (data) => {
@@ -270,7 +265,7 @@ export default function App() {
   const handleDeleteProduct = async (prod) => {
     try {
       await deleteProduct(prod.id);
-      toast.success('Product removed from catalog');
+      toast.success('Product removed');
       loadProducts();
       loadDashboardStats();
     } catch (err) {
@@ -333,7 +328,6 @@ export default function App() {
     }
   };
 
-  // ── Render ──────────────────────────────────────
   if (!authUser) {
     return (
       <>
@@ -345,7 +339,6 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* Toast Notification Container with Dark Mode styles */}
       <Toaster
         position="top-right"
         toastOptions={{
@@ -361,13 +354,11 @@ export default function App() {
         }}
       />
 
-      {/* Navigation Sidebar */}
-      <Sidebar currentTab={currentTab} setCurrentTab={setCurrentTab} stats={stats} />
+      <Sidebar stats={stats} />
 
-      {/* Main Content Area */}
       <div className="main-content">
         <Header
-          currentTab={currentTab}
+          currentTab={currentPath.replace('/', '') || 'dashboard'}
           authUser={authUser}
           onLogout={handleLogout}
           onOpenCreateOrder={() => {
@@ -378,95 +369,98 @@ export default function App() {
         />
 
         <main className="content-body">
-          {currentTab === 'dashboard' && (
-            <DashboardView
-              stats={stats}
-              selectedDate={dashboardDate}
-              setSelectedDate={setDashboardDate}
-              onNavigate={(tab) => setCurrentTab(tab)}
-              onViewOrder={(order) => setSelectedOrderForDetails(order)}
-              onOpenCreateOrder={() => {
-                loadCustomers();
-                loadProducts();
-                setIsCreateOrderModalOpen(true);
-              }}
-            />
-          )}
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            
+            <Route path="/dashboard" element={
+              <DashboardView
+                stats={stats}
+                selectedDate={dashboardDate}
+                setSelectedDate={setDashboardDate}
+                onNavigate={(path) => navigate('/' + path)}
+                onViewOrder={(order) => setSelectedOrderForDetails(order)}
+                onOpenCreateOrder={() => {
+                  loadCustomers();
+                  loadProducts();
+                  setIsCreateOrderModalOpen(true);
+                }}
+              />
+            } />
 
-          {currentTab === 'orders' && (
-            <OrderListView
-              orders={orders}
-              loading={loadingOrders}
-              searchTerm={orderSearch}
-              setSearchTerm={setOrderSearch}
-              statusFilter={orderStatusFilter}
-              setStatusFilter={setOrderStatusFilter}
-              paymentFilter={orderPaymentFilter}
-              setPaymentFilter={setOrderPaymentFilter}
-              selectedDate={orderDate}
-              setSelectedDate={setOrderDate}
-              onOpenCreateModal={() => {
-                loadCustomers();
-                loadProducts();
-                setIsCreateOrderModalOpen(true);
-              }}
-              onViewOrder={(order) => setSelectedOrderForDetails(order)}
-              onOpenInvoice={(order) => setSelectedOrderForInvoice(order)}
-              onUpdateStatus={handleUpdateOrderStatus}
-              onDeleteOrder={handleDeleteOrder}
-            />
-          )}
+            <Route path="/orders" element={
+              <OrderListView
+                orders={orders}
+                loading={loadingOrders}
+                searchTerm={orderSearch}
+                setSearchTerm={setOrderSearch}
+                statusFilter={orderStatusFilter}
+                setStatusFilter={setOrderStatusFilter}
+                paymentFilter={orderPaymentFilter}
+                setPaymentFilter={setOrderPaymentFilter}
+                selectedDate={orderDate}
+                setSelectedDate={setOrderDate}
+                onOpenCreateModal={() => {
+                  loadCustomers();
+                  loadProducts();
+                  setIsCreateOrderModalOpen(true);
+                }}
+                onViewOrder={(order) => setSelectedOrderForDetails(order)}
+                onOpenInvoice={(order) => setSelectedOrderForInvoice(order)}
+                onUpdateStatus={handleUpdateOrderStatus}
+                onDeleteOrder={handleDeleteOrder}
+              />
+            } />
 
-          {currentTab === 'customers' && (
-            <CustomerListView
-              customers={customers}
-              loading={loadingCustomers}
-              searchTerm={customerSearch}
-              setSearchTerm={setCustomerSearch}
-              onOpenAddModal={() => {
-                setSelectedCustomerForEdit(null);
-                setIsCustomerModalOpen(true);
-              }}
-              onOpenEditModal={(cust) => {
-                setSelectedCustomerForEdit(cust);
-                setIsCustomerModalOpen(true);
-              }}
-              onOpenDetailsModal={(cust) => {
-                setSelectedCustomerIdForDetails(cust.id);
-              }}
-              onDeleteCustomer={handleDeleteCustomer}
-            />
-          )}
+            <Route path="/customers" element={
+              <CustomerListView
+                customers={customers}
+                loading={loadingCustomers}
+                searchTerm={customerSearch}
+                setSearchTerm={setCustomerSearch}
+                onOpenAddModal={() => {
+                  setSelectedCustomerForEdit(null);
+                  setIsCustomerModalOpen(true);
+                }}
+                onOpenEditModal={(cust) => {
+                  setSelectedCustomerForEdit(cust);
+                  setIsCustomerModalOpen(true);
+                }}
+                onOpenDetailsModal={(cust) => {
+                  setSelectedCustomerIdForDetails(cust.id);
+                }}
+                onDeleteCustomer={handleDeleteCustomer}
+              />
+            } />
 
-          {currentTab === 'products' && (
-            <ProductListView
-              products={products}
-              loading={loadingProducts}
-              filters={productFilters}
-              searchTerm={productSearch}
-              setSearchTerm={setProductSearch}
-              selectedCategory={productCategory}
-              setSelectedCategory={setProductCategory}
-              selectedBrand={productBrand}
-              setSelectedBrand={setProductBrand}
-              onOpenAddModal={() => {
-                setSelectedProductForEdit(null);
-                setIsProductModalOpen(true);
-              }}
-              onOpenEditModal={(prod) => {
-                setSelectedProductForEdit(prod);
-                setIsProductModalOpen(true);
-              }}
-              onDeleteProduct={handleDeleteProduct}
-            />
-          )}
-          {currentTab === 'profile' && (
-            <ProfilePage />
-          )}
+            <Route path="/products" element={
+              <ProductListView
+                products={products}
+                loading={loadingProducts}
+                filters={productFilters}
+                searchTerm={productSearch}
+                setSearchTerm={setProductSearch}
+                selectedCategory={productCategory}
+                setSelectedCategory={setProductCategory}
+                selectedBrand={productBrand}
+                setSelectedBrand={setProductBrand}
+                onOpenAddModal={() => {
+                  setSelectedProductForEdit(null);
+                  setIsProductModalOpen(true);
+                }}
+                onOpenEditModal={(prod) => {
+                  setSelectedProductForEdit(prod);
+                  setIsProductModalOpen(true);
+                }}
+                onDeleteProduct={handleDeleteProduct}
+              />
+            } />
+
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
         </main>
       </div>
 
-      {/* Customer Modals */}
       <CustomerModal
         isOpen={isCustomerModalOpen}
         onClose={() => setIsCustomerModalOpen(false)}
@@ -484,7 +478,6 @@ export default function App() {
         }}
       />
 
-      {/* Product Modal */}
       <ProductModal
         isOpen={isProductModalOpen}
         onClose={() => setIsProductModalOpen(false)}
@@ -492,7 +485,6 @@ export default function App() {
         initialData={selectedProductForEdit}
       />
 
-      {/* Order Modals */}
       <CreateOrderModal
         isOpen={isCreateOrderModalOpen}
         onClose={() => setIsCreateOrderModalOpen(false)}
@@ -518,7 +510,6 @@ export default function App() {
         onClose={() => setSelectedOrderForInvoice(null)}
         order={selectedOrderForInvoice}
       />
-
 
     </div>
   );

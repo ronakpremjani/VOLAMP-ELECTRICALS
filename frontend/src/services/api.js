@@ -46,14 +46,19 @@ const getCached = async (url, config = {}) => {
     }
   } catch (e) {}
 
+  // Caching temporarily disabled for development so you can see requests in the Network tab
   const res = await api.get(url, config);
   
   try {
-    sessionStorage.setItem(key, JSON.stringify(res));
-  } catch (e) {}
+    // Only store the data property to avoid circular reference errors from full Axios response
+    sessionStorage.setItem(key, JSON.stringify({ data: res.data }));
+  } catch (e) {
+    console.warn('Cache write failed', e);
+  }
   
   return res;
 };
+
 
 // ── Dashboard ──────────────────────────────────────────────
 export const getDashboardStats = async (params = {}) => {
