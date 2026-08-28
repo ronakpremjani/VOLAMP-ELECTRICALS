@@ -1,4 +1,5 @@
 const prisma = require('../config/db');
+const socket = require('../socket');
 
 // GET /api/customers - List all customers with computed Total Orders and Total Order Value
 const getCustomers = async (req, res) => {
@@ -131,6 +132,7 @@ const createCustomer = async (req, res) => {
       },
     });
 
+    socket.getIO().emit('data_changed', { type: 'customer_created', id: customer.id });
     res.status(201).json({ success: true, message: 'Customer created successfully', data: customer });
   } catch (error) {
     console.error('Error creating customer:', error);
@@ -202,6 +204,7 @@ const updateCustomer = async (req, res) => {
       },
     });
 
+    socket.getIO().emit('data_changed', { type: 'customer_updated', id: updated.id });
     res.json({ success: true, message: 'Customer updated successfully', data: updated });
   } catch (error) {
     console.error('Error updating customer:', error);
@@ -230,6 +233,7 @@ const deleteCustomer = async (req, res) => {
     }
 
     await prisma.customer.delete({ where: { id } });
+    socket.getIO().emit('data_changed', { type: 'customer_deleted', id });
     res.json({ success: true, message: 'Customer deleted successfully' });
   } catch (error) {
     console.error('Error deleting customer:', error);

@@ -1,5 +1,6 @@
 const prisma = require('../config/db');
 const { calculateOrderTotals } = require('../utils/orderCalculations');
+const socket = require('../socket');
 
 // Helper to generate unique order number like VOL-2026-0001
 async function generateOrderNumber() {
@@ -202,9 +203,19 @@ const createOrder = async (req, res) => {
         });
       }
 
+      await tx.notification.create({
+        data: {
+          title: 'New Order Received',
+          message: `Order ${order.orderNumber} created for ${customer.companyName || customer.name}.`,
+          type: 'ORDER',
+          relatedId: order.id,
+        }
+      });
+
       return order;
     });
 
+    socket.getIO().emit('data_changed', { type: 'order_created', id: newOrder.id });
     res.status(201).json({
       success: true,
       message: `Order #${newOrder.orderNumber} created successfully`,
@@ -264,7 +275,7 @@ const updateOrderStatus = async (req, res) => {
         }
       }
 
-      return await tx.order.update({
+      const order = await tx.order.update({
         where: { id },
         data: { orderStatus: targetStatus },
         include: {
@@ -272,8 +283,20 @@ const updateOrderStatus = async (req, res) => {
           items: { include: { product: true } },
         },
       });
+
+      await tx.notification.create({
+        data: {
+          title: 'Order Status Updated',
+          message: `Order ${order.orderNumber} is now ${targetStatus}.`,
+          type: 'ORDER',
+          relatedId: order.id,
+        }
+      });
+
+      return order;
     });
 
+    socket.getIO().emit('data_changed', { type: 'order_updated', id: updated.id });
     res.json({
       success: true,
       message: `Order status updated to '${targetStatus}'`,
@@ -310,23 +333,37 @@ const updateOrderPayment = async (req, res) => {
       paymentStatus = 'Partially Paid';
     }
 
-    const updated = await prisma.order.update({
-      where: { id },
-      data: {
-        amountReceived: newAmountReceived,
-        balanceAmount,
-        paymentStatus,
-      },
-      include: {
-        customer: true,
-        items: { include: { product: true } },
-      },
+    const result = await prisma.$transaction(async (tx) => {
+        const order = await tx.order.update({
+          where: { id },
+          data: {
+            amountReceived: newAmountReceived,
+            balanceAmount,
+            paymentStatus,
+          },
+          include: {
+            customer: true,
+            items: { include: { product: true } },
+          },
+        });
+
+        await tx.notification.create({
+          data: {
+            title: 'Payment Received',
+            message: `Payment of ₹${newAmountReceived} recorded for Order ${order.orderNumber}. New status: ${paymentStatus}.`,
+            type: 'PAYMENT',
+            relatedId: order.id,
+          }
+        });
+
+        return order;
     });
 
+    socket.getIO().emit('data_changed', { type: 'order_payment_updated', id: result.id });
     res.json({
       success: true,
       message: `Payment updated. Balance remaining: ₹${balanceAmount.toLocaleString('en-IN')}`,
-      data: updated,
+      data: result,
     });
   } catch (error) {
     console.error('Error updating payment:', error);
@@ -362,6 +399,7 @@ const deleteOrder = async (req, res) => {
       await tx.order.delete({ where: { id } });
     });
 
+    socket.getIO().emit('data_changed', { type: 'order_deleted', id: id });
     res.json({ success: true, message: `Order #${existing.orderNumber} deleted successfully` });
   } catch (error) {
     console.error('Error deleting order:', error);

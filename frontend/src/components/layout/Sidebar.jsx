@@ -1,16 +1,17 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingCart, Users, Package, Zap } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Users, Package, Zap, UserCircle2 } from 'lucide-react';
 
 export default function Sidebar({ currentTab, setCurrentTab, stats }) {
   const navItems = [
-    { id: 'dashboard',  label: 'Dashboard',          icon: LayoutDashboard },
-    { id: 'orders',     label: 'Orders & Billing',    icon: ShoppingCart,   count: stats?.kpis?.totalOrders },
-    { id: 'customers',  label: 'Customers',           icon: Users,          count: stats?.inventory?.totalCustomers },
-    { id: 'products',   label: 'Product Catalog',     icon: Package,        count: stats?.inventory?.totalProducts },
+    { id: 'dashboard',  label: 'Dashboard',       icon: LayoutDashboard },
+    { id: 'orders',     label: 'Orders & Billing', icon: ShoppingCart,  count: stats?.kpis?.totalOrders },
+    { id: 'customers',  label: 'Customers',        icon: Users,         count: stats?.inventory?.totalCustomers },
+    { id: 'products',   label: 'Product Catalog',  icon: Package,       count: stats?.inventory?.totalProducts },
   ];
 
   return (
     <aside className="sidebar">
+      {/* Brand */}
       <div className="sidebar-brand">
         <div className="brand-icon">
           <Zap size={20} />
@@ -21,6 +22,7 @@ export default function Sidebar({ currentTab, setCurrentTab, stats }) {
         </div>
       </div>
 
+      {/* Main Navigation */}
       <nav className="sidebar-nav">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -39,10 +41,10 @@ export default function Sidebar({ currentTab, setCurrentTab, stats }) {
                     fontSize: '0.7rem',
                     padding: '1px 7px',
                     borderRadius: '999px',
-                    background: isActive ? 'rgba(255,119,0,0.18)' : 'var(--bg-subtle)',
-                    color: isActive ? 'var(--primary)' : 'var(--text-muted)',
+                    background: isActive ? 'rgba(255,119,0,0.25)' : 'rgba(255,255,255,0.10)',
+                    color: isActive ? '#FF7700' : 'rgba(255,255,255,0.55)',
                     fontWeight: 700,
-                    border: isActive ? '1px solid var(--primary-border)' : '1px solid var(--border-color)',
+                    border: isActive ? '1px solid rgba(255,119,0,0.35)' : '1px solid rgba(255,255,255,0.12)',
                   }}
                 >
                   {item.count}
@@ -53,12 +55,25 @@ export default function Sidebar({ currentTab, setCurrentTab, stats }) {
         })}
       </nav>
 
+      {/* Profile — pinned to bottom above footer */}
+      <div style={{ padding: '0 0.75rem 0.5rem' }}>
+        <button
+          className={`nav-item ${currentTab === 'profile' ? 'active' : ''}`}
+          onClick={() => setCurrentTab('profile')}
+          style={{ width: '100%' }}
+        >
+          <UserCircle2 size={17} style={{ flexShrink: 0 }} />
+          <span style={{ flex: 1, textAlign: 'left' }}>Company Profile</span>
+        </button>
+      </div>
+
+      {/* Footer */}
       <div className="sidebar-footer">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontWeight: 600, fontSize: '0.76rem', color: 'var(--color-emerald)' }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--color-emerald)', flexShrink: 0 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontWeight: 600, fontSize: '0.76rem', color: '#4ade80' }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />
           System Online
         </div>
-        <div style={{ marginTop: '3px', fontSize: '0.7rem', color: 'var(--text-light)' }}>
+        <div style={{ marginTop: '3px', fontSize: '0.7rem', color: 'rgba(255,255,255,0.35)' }}>
           v1.0 · Volamp Electricals
         </div>
       </div>

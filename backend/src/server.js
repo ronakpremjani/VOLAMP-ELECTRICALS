@@ -1,7 +1,10 @@
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const morgan = require('morgan');
 require('dotenv').config();
+
+const io = require('./socket');
 
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const customerRoutes = require('./routes/customerRoutes');
@@ -10,7 +13,11 @@ const orderRoutes = require('./routes/orderRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
+
+// Initialize Socket.io
+io.init(server);
 
 // Middleware
 app.use(cors({
@@ -52,6 +59,6 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`⚡ Volamp Electricals OMS Backend running on http://localhost:${PORT}`);
 });

@@ -1,16 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, RefreshCw, Moon, Sun, Bell, User } from 'lucide-react';
+import { Plus, RefreshCw, Bell } from 'lucide-react';
 import { getNotifications, markAllNotificationsAsRead, markNotificationAsRead, clearAllNotifications } from '../../services/api';
 import { formatDateTime } from '../../utils/date';
 
 export default function Header({
   currentTab,
-  onOpenCreateOrder,
-  onRefresh,
-  isRefreshing,
-  isDarkMode,
-  onToggleDarkMode,
-  onOpenProfile,
 }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -22,6 +16,7 @@ export default function Header({
     orders: { title: 'Order Management', subtitle: 'Manage orders, fulfillment workflows, and payment balances' },
     customers: { title: 'Customers Directory', subtitle: 'Manage customer accounts, billing history, and ledger balances' },
     products: { title: 'Product Master Catalog', subtitle: 'Manage electrical products, brands, SKU codes, and stock levels' },
+    profile: { title: 'Company Profile', subtitle: 'Manage enterprise details, GST information, and banking credentials' },
   };
 
   const current = titles[currentTab] || { title: 'Order Management System', subtitle: 'Volamp Electricals' };
@@ -71,16 +66,6 @@ export default function Header({
       </div>
 
       <div className="header-actions">
-        {/* Dark Mode Switcher */}
-        <button
-          type="button"
-          className="theme-toggle-btn"
-          onClick={onToggleDarkMode}
-          title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        >
-          {isDarkMode ? <Sun size={18} color="currentColor" /> : <Moon size={18} color="currentColor" />}
-        </button>
-
         {/* Notifications Button & Dropdown */}
         <div style={{ position: 'relative' }} ref={notifRef}>
           <button
@@ -189,33 +174,6 @@ export default function Header({
             </div>
           )}
         </div>
-
-        {/* Profile Settings Opener */}
-        <button
-          type="button"
-          className="theme-toggle-btn"
-          onClick={onOpenProfile}
-          title="Enterprise Settings & Profile"
-        >
-          <User size={18} />
-        </button>
-
-        {/* Database Refresh */}
-        <button
-          className="btn btn-secondary btn-sm"
-          onClick={onRefresh}
-          title="Refresh database data"
-          disabled={isRefreshing}
-        >
-          <RefreshCw size={15} className={isRefreshing ? 'animate-spin' : ''} />
-          <span className="hidden sm:inline">Refresh</span>
-        </button>
-
-        {/* Create Order Button */}
-        <button className="btn btn-primary" onClick={onOpenCreateOrder}>
-          <Plus size={16} />
-          <span>Create Order</span>
-        </button>
       </div>
     </header>
   );

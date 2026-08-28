@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
+import { io } from 'socket.io-client';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
-import ProfileModal from './components/layout/ProfileModal';
+import ProfilePage from './components/layout/ProfilePage';
 import DashboardView from './components/dashboard/DashboardView';
 import CustomerListView from './components/customers/CustomerListView';
 import CustomerModal from './components/customers/CustomerModal';
@@ -29,32 +30,12 @@ import {
   updateOrderStatus,
   updateOrderPayment,
   deleteOrder,
+  clearCache,
 } from './services/api';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Dark Mode State with LocalStorage Persistence
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('volamp-theme');
-    if (saved) return saved === 'dark';
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
-
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('volamp-theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('volamp-theme', 'light');
-    }
-  }, [isDarkMode]);
-
-  const toggleDarkMode = () => {
-    setIsDarkMode((prev) => !prev);
-  };
 
   // Data States
   const [stats, setStats] = useState(null);
@@ -161,8 +142,8 @@ export default function App() {
     }
   }, [orderSearch, orderStatusFilter, orderPaymentFilter, orderDate]);
 
-  // Global Refresh
-  const handleRefreshAll = async () => {
+  // Global Refresh (quiet = true avoids toast flash for background syncs)
+  const handleRefreshAll = async (quiet = false) => {
     setIsRefreshing(true);
     await Promise.all([
       loadDashboardStats(),
@@ -171,8 +152,33 @@ export default function App() {
       loadOrders(),
     ]);
     setIsRefreshing(false);
-    toast.success('Database synchronized');
+    if (!quiet) toast.success('Database synchronized');
   };
+
+  // Real-time automatic updates
+  useEffect(() => {
+    const socket = io('http://localhost:5000');
+    let timeoutId;
+
+    socket.on('connect', () => {
+      console.log('Real-time sync connected');
+    });
+
+    socket.on('data_changed', (event) => {
+      console.log('Background data change detected:', event);
+      // Debounce the refresh to prevent spamming the backend
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        clearCache(); // Flush client cache before pulling fresh data
+        handleRefreshAll(true);
+      }, 500);
+    });
+
+    return () => {
+      socket.disconnect();
+      clearTimeout(timeoutId);
+    };
+  }, [loadDashboardStats, loadCustomers, loadProducts, loadOrders]);
 
   // Initial Load
   useEffect(() => {
@@ -301,10 +307,10 @@ export default function App() {
         toastOptions={{
           duration: 3500,
           style: {
-            background: isDarkMode ? '#1e293b' : '#ffffff',
-            color: isDarkMode ? '#f8fafc' : '#0f172a',
-            border: isDarkMode ? '1px solid #334155' : '1px solid #e2e8f0',
-            boxShadow: isDarkMode ? '0 10px 25px -5px rgba(0,0,0,0.6)' : '0 10px 25px -5px rgba(0,0,0,0.1)',
+            background: '#ffffff',
+            color: '#0d2233',
+            border: '1px solid #e4e6ea',
+            boxShadow: '0 10px 25px -5px rgba(13,34,51,0.12)',
             fontSize: '0.86rem',
             fontWeight: 600,
           },
@@ -323,11 +329,6 @@ export default function App() {
             loadProducts();
             setIsCreateOrderModalOpen(true);
           }}
-          onRefresh={handleRefreshAll}
-          isRefreshing={isRefreshing}
-          isDarkMode={isDarkMode}
-          onToggleDarkMode={toggleDarkMode}
-          onOpenProfile={() => setIsProfileModalOpen(true)}
         />
 
         <main className="content-body">
@@ -411,6 +412,9 @@ export default function App() {
               onDeleteProduct={handleDeleteProduct}
             />
           )}
+          {currentTab === 'profile' && (
+            <ProfilePage />
+          )}
         </main>
       </div>
 
@@ -467,11 +471,7 @@ export default function App() {
         order={selectedOrderForInvoice}
       />
 
-      {/* Profile Modal */}
-      <ProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-      />
+
     </div>
   );
 }

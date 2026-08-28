@@ -1,4 +1,5 @@
 const prisma = require('../config/db');
+const socket = require('../socket');
 
 // GET /api/products - List products with optional search and category filters
 const getProducts = async (req, res) => {
@@ -113,6 +114,7 @@ const createProduct = async (req, res) => {
       },
     });
 
+    socket.getIO().emit('data_changed', { type: 'product_created', id: product.id });
     res.status(201).json({ success: true, message: 'Product created successfully', data: product });
   } catch (error) {
     console.error('Error creating product:', error);
@@ -156,6 +158,7 @@ const updateProduct = async (req, res) => {
       },
     });
 
+    socket.getIO().emit('data_changed', { type: 'product_updated', id: updated.id });
     res.json({ success: true, message: 'Product updated successfully', data: updated });
   } catch (error) {
     console.error('Error updating product:', error);
@@ -184,6 +187,7 @@ const deleteProduct = async (req, res) => {
     }
 
     await prisma.product.delete({ where: { id } });
+    socket.getIO().emit('data_changed', { type: 'product_deleted', id });
     res.json({ success: true, message: 'Product deleted successfully' });
   } catch (error) {
     console.error('Error deleting product:', error);

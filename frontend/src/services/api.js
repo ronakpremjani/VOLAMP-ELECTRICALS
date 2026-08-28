@@ -7,20 +7,37 @@ const api = axios.create({
   },
 });
 
-// Dashboard
+// Simple in-memory cache to reduce server load
+const cache = new Map();
+
+export const clearCache = () => {
+  cache.clear();
+};
+
+const getCached = async (url, config = {}) => {
+  const key = `${url}?${new URLSearchParams(config.params || {}).toString()}`;
+  if (cache.has(key)) {
+    return cache.get(key);
+  }
+  const res = await api.get(url, config);
+  cache.set(key, res);
+  return res;
+};
+
+// ── Dashboard ──────────────────────────────────────────────
 export const getDashboardStats = async (params = {}) => {
-  const res = await api.get('/dashboard/stats', { params });
+  const res = await getCached('/dashboard/stats', { params });
   return res.data;
 };
 
-// Customers
+// ── Customers ──────────────────────────────────────────────
 export const getCustomers = async (search = '') => {
-  const res = await api.get('/customers', { params: { search } });
+  const res = await getCached('/customers', { params: { search } });
   return res.data;
 };
 
 export const getCustomerById = async (id) => {
-  const res = await api.get(`/customers/${id}`);
+  const res = await getCached(`/customers/${id}`);
   return res.data;
 };
 
@@ -44,14 +61,14 @@ export const deleteCustomer = async (id) => {
   return res.data;
 };
 
-// Products
+// ── Products ───────────────────────────────────────────────
 export const getProducts = async (params = {}) => {
-  const res = await api.get('/products', { params });
+  const res = await getCached('/products', { params });
   return res.data;
 };
 
 export const getProductById = async (id) => {
-  const res = await api.get(`/products/${id}`);
+  const res = await getCached(`/products/${id}`);
   return res.data;
 };
 
@@ -70,19 +87,20 @@ export const deleteProduct = async (id) => {
   return res.data;
 };
 
-// Orders
-export const getNextOrderNumber = async () => {
-  const res = await api.get('/orders/next-number');
-  return res.data;
-};
-
+// ── Orders ─────────────────────────────────────────────────
 export const getOrders = async (params = {}) => {
-  const res = await api.get('/orders', { params });
+  const res = await getCached('/orders', { params });
   return res.data;
 };
 
 export const getOrderById = async (id) => {
-  const res = await api.get(`/orders/${id}`);
+  const res = await getCached(`/orders/${id}`);
+  return res.data;
+};
+
+export const getNextOrderNumber = async () => {
+  // Always fetch fresh for order numbers to avoid collisions
+  const res = await api.get('/orders/next-number');
   return res.data;
 };
 
@@ -91,13 +109,13 @@ export const createOrder = async (data) => {
   return res.data;
 };
 
-export const updateOrderStatus = async (id, orderStatus) => {
-  const res = await api.patch(`/orders/${id}/status`, { orderStatus });
+export const updateOrderStatus = async (id, status) => {
+  const res = await api.patch(`/orders/${id}/status`, { status });
   return res.data;
 };
 
-export const updateOrderPayment = async (id, amountReceived) => {
-  const res = await api.patch(`/orders/${id}/payment`, { amountReceived });
+export const updateOrderPayment = async (id, data) => {
+  const res = await api.patch(`/orders/${id}/payment`, data);
   return res.data;
 };
 
@@ -106,9 +124,10 @@ export const deleteOrder = async (id) => {
   return res.data;
 };
 
-// Notifications
-export const getNotifications = async () => {
-  const res = await api.get('/notifications');
+// ── Notifications ──────────────────────────────────────────
+export const getNotifications = async (limit = 10) => {
+  // Always fetch fresh for notifications
+  const res = await api.get('/notifications', { params: { limit } });
   return res.data;
 };
 
@@ -123,7 +142,7 @@ export const markAllNotificationsAsRead = async () => {
 };
 
 export const clearAllNotifications = async () => {
-  const res = await api.delete('/notifications/clear');
+  const res = await api.delete('/notifications/clear-all');
   return res.data;
 };
 
