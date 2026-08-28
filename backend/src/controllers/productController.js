@@ -45,15 +45,9 @@ const getProducts = async (req, res) => {
       ];
     }
 
-    let orderBy = { name: 'asc' }; // default
-    if (req.query.sortBy === 'price_desc') orderBy = { price: 'desc' };
-    else if (req.query.sortBy === 'price_asc') orderBy = { price: 'asc' };
-    else if (req.query.sortBy === 'stock_desc') orderBy = { stock: 'desc' };
-    else if (req.query.sortBy === 'stock_asc') orderBy = { stock: 'asc' };
-
     const products = await prisma.product.findMany({
       where,
-      orderBy,
+      orderBy: { name: 'asc' },
     });
 
     // Extract unique categories and brands for filter dropdowns

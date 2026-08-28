@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Plus, Edit2, Trash2, CheckCircle2, AlertTriangle, X, Package, Tag, Layers, Filter } from 'lucide-react';
+import CustomDropdown from '../common/CustomDropdown';
 
 export default function ProductListView({
   products = [],
@@ -107,52 +108,58 @@ export default function ProductListView({
 
                 <div className="form-group">
                   <label className="form-label">Category</label>
-                  <select
-                    className="form-select"
+                  <CustomDropdown
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                  >
-                    <option value="All">All Categories</option>
-                    {(filters?.categories || []).map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setSelectedCategory(val)}
+                    options={[
+                      { value: 'All', label: 'All Categories' },
+                      ...(filters?.categories || []).map(cat => ({ value: cat, label: cat }))
+                    ]}
+                  />
                 </div>
 
                 <div className="form-group">
                   <label className="form-label">Brand</label>
-                  <select
-                    className="form-select"
+                  <CustomDropdown
                     value={selectedBrand}
-                    onChange={(e) => setSelectedBrand(e.target.value)}
-                  >
-                    <option value="All">All Brands</option>
-                    {(filters?.brands || []).map((brand) => (
-                      <option key={brand} value={brand}>
-                        {brand}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setSelectedBrand(val)}
+                    options={[
+                      { value: 'All', label: 'All Brands' },
+                      ...(filters?.brands || []).map(brand => ({ value: brand, label: brand }))
+                    ]}
+                  />
                 </div>
 
                 <div className="form-group">
                   <label className="form-label">Stock Level</label>
-                  <select
-                    className="form-select"
+                  <CustomDropdown
                     value={lowStock}
-                    onChange={(e) => setLowStock(e.target.value)}
-                  >
-                    <option value="All">All Stock Levels</option>
-                    <option value="Yes">Low Stock / Out of Stock</option>
-                  </select>
+                    onChange={(val) => setLowStock(val)}
+                    options={[
+                      { value: 'All', label: 'All Stock Levels' },
+                      { value: 'Yes', label: 'Low Stock / Out of Stock' }
+                    ]}
+                  />
                 </div>
 
-                { (selectedCategory !== 'All' || selectedBrand !== 'All' || lowStock !== 'All') && (
+                <div className="form-group">
+                  <label className="form-label">Sort By</label>
+                  <CustomDropdown
+                    value={sortBy}
+                    onChange={(val) => setSortBy(val)}
+                    options={[
+                      { value: 'name_asc', label: 'Name (A-Z)' },
+                      { value: 'price_desc', label: 'Price (High to Low)' },
+                      { value: 'price_asc', label: 'Price (Low to High)' },
+                      { value: 'stock_desc', label: 'Stock Level (High to Low)' },
+                      { value: 'stock_asc', label: 'Stock Level (Low to High)' }
+                    ]}
+                  />
+                </div>
+
+                { (selectedCategory !== 'All' || selectedBrand !== 'All' || lowStock !== 'All' || sortBy !== 'name_asc') && (
                   <button 
                     className="btn btn-secondary btn-sm" 
-                    onClick={() => { setSelectedCategory('All'); setSelectedBrand('All'); setLowStock('All'); }}
                     style={{ marginTop: '0.25rem', width: '100%', justifyContent: 'center' }}
                   >
                     Clear Filters

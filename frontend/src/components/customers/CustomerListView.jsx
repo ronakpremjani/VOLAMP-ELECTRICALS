@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Plus, Edit2, Trash2, Eye, Building2, Phone, MapPin, X, FileSpreadsheet, User, Filter } from 'lucide-react';
+import CustomDropdown from '../common/CustomDropdown';
 
 export default function CustomerListView({
   customers = [],
@@ -106,34 +107,45 @@ export default function CustomerListView({
 
                 <div className="form-group">
                   <label className="form-label">By City</label>
-                  <select
-                    className="form-select"
+                  <CustomDropdown
                     value={selectedCity}
-                    onChange={(e) => setSelectedCity(e.target.value)}
-                  >
-                    <option value="All">All Cities</option>
-                    {(filters?.cities || []).map((city) => (
-                      <option key={city} value={city}>{city}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setSelectedCity(val)}
+                    options={[
+                      { value: 'All', label: 'All Cities' },
+                      ...(filters?.cities || []).map(city => ({ value: city, label: city }))
+                    ]}
+                  />
                 </div>
 
                 <div className="form-group">
                   <label className="form-label">By Payment Status</label>
-                  <select
-                    className="form-select"
+                  <CustomDropdown
                     value={hasBalance}
-                    onChange={(e) => setHasBalance(e.target.value)}
-                  >
-                    <option value="All">All Balances</option>
-                    <option value="Yes">Has Balance Due</option>
-                  </select>
+                    onChange={(val) => setHasBalance(val)}
+                    options={[
+                      { value: 'All', label: 'All Balances' },
+                      { value: 'Yes', label: 'Has Balance Due' }
+                    ]}
+                  />
                 </div>
 
-                { (selectedCity !== 'All' || hasBalance !== 'All') && (
+                <div className="form-group">
+                  <label className="form-label">Sort By</label>
+                  <CustomDropdown
+                    value={sortBy}
+                    onChange={(val) => setSortBy(val)}
+                    options={[
+                      { value: 'recent', label: 'Most Recent' },
+                      { value: 'name_asc', label: 'Name (A-Z)' },
+                      { value: 'billed_desc', label: 'Total Billed (High to Low)' },
+                      { value: 'balance_desc', label: 'Balance Due (High to Low)' }
+                    ]}
+                  />
+                </div>
+
+                { (selectedCity !== 'All' || hasBalance !== 'All' || sortBy !== 'recent') && (
                   <button 
                     className="btn btn-secondary btn-sm" 
-                    onClick={() => { setSelectedCity('All'); setHasBalance('All'); }}
                     style={{ marginTop: '0.25rem', width: '100%', justifyContent: 'center' }}
                   >
                     Clear Filters

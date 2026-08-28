@@ -65,14 +65,6 @@ const getCustomers = async (req, res) => {
     if (hasBalance === 'true') {
       finalCustomers = finalCustomers.filter(c => c.totalBalanceDue > 0);
     }
-
-    if (req.query.sortBy === 'name_asc') {
-      finalCustomers.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (req.query.sortBy === 'billed_desc') {
-      finalCustomers.sort((a, b) => b.totalOrderValue - a.totalOrderValue);
-    } else if (req.query.sortBy === 'balance_desc') {
-      finalCustomers.sort((a, b) => b.totalBalanceDue - a.totalBalanceDue);
-    }
     
     // Extract unique cities for the frontend filter
     const allCustomers = await prisma.customer.findMany({ select: { city: true } });

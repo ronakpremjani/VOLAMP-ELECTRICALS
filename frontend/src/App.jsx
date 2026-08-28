@@ -81,14 +81,12 @@ export default function App() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerCity, setCustomerCity] = useState('All');
   const [customerHasBalance, setCustomerHasBalance] = useState('All');
-  const [customerSortBy, setCustomerSortBy] = useState('recent');
   const [customerFilters, setCustomerFilters] = useState({ cities: [] });
 
   const [productSearch, setProductSearch] = useState('');
   const [productCategory, setProductCategory] = useState('All');
   const [productBrand, setProductBrand] = useState('All');
   const [productLowStock, setProductLowStock] = useState('All');
-  const [productSortBy, setProductSortBy] = useState('name_asc');
 
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('All');
