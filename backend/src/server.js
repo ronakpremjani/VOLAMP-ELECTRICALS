@@ -11,6 +11,7 @@ const customerRoutes = require('./routes/customerRoutes');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -29,6 +30,7 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Route registrations
+app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/products', productRoutes);

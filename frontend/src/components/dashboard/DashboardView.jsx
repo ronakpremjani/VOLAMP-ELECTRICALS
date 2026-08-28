@@ -2,13 +2,14 @@ import React from 'react';
 import MetricCard from '../layout/MetricCard';
 import OrderStatusBadge from '../orders/OrderStatusBadge';
 import PaymentStatusBadge from '../orders/PaymentStatusBadge';
+import DatePicker from '../common/DatePicker';
 import {
   ShoppingCart, Clock, CheckCircle2, Truck, PackageCheck,
-  XCircle, IndianRupee, Users, Package, AlertTriangle,
+  XCircle, Users, Package, AlertTriangle,
   ArrowRight, Eye, TrendingUp, Zap, Plus,
 } from 'lucide-react';
 
-export default function DashboardView({ stats, onNavigate, onViewOrder, onOpenCreateOrder }) {
+export default function DashboardView({ stats, onNavigate, onViewOrder, onOpenCreateOrder, selectedDate, setSelectedDate }) {
   const kpis = stats?.kpis || {};
   const inventory = stats?.inventory || {};
   const recentOrders = stats?.recentOrders || [];
@@ -20,10 +21,22 @@ export default function DashboardView({ stats, onNavigate, onViewOrder, onOpenCr
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
+      {/* ── Header row with date filter ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div>
+          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>Overview</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+            {selectedDate ? `Showing data for selected date` : 'Showing all-time data'}
+          </div>
+        </div>
+        <div style={{ width: '200px' }}>
+          <DatePicker value={selectedDate} onChange={setSelectedDate} placeholder="Filter by date..." />
+        </div>
+      </div>
+
       {/* ── KPI Cards ───────────────────────────────── */}
       <div className="kpi-grid">
         <MetricCard label="Total Orders"   value={kpis.totalOrders     || 0} icon={ShoppingCart}  color="blue"    />
-        <MetricCard label="Total Revenue"  value={kpis.totalOrderValue || 0} prefix="₹"            icon={IndianRupee} color="orange"  />
         <MetricCard label="Pending"        value={kpis.pendingOrders   || 0} icon={Clock}          color="amber"   />
         <MetricCard label="Confirmed"      value={kpis.confirmedOrders || 0} icon={CheckCircle2}   color="blue"    />
         <MetricCard label="Dispatched"     value={kpis.dispatchedOrders|| 0} icon={Truck}          color="cyan"    />

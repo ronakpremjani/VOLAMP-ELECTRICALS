@@ -7,20 +7,51 @@ const api = axios.create({
   },
 });
 
-// Simple in-memory cache to reduce server load
-const cache = new Map();
+// Attach JWT token to every request
+api.interceptors.request.use((config) => {
+  const token = sessionStorage.getItem('volamp_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => Promise.reject(error));
 
+// Persistent Cache to reduce server load and improve speed
 export const clearCache = () => {
-  cache.clear();
+  try {
+    Object.keys(sessionStorage).forEach(key => {
+      if (key.startsWith('volamp_cache_')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  } catch (e) {}
 };
 
-const getCached = async (url, config = {}) => {
-  const key = `${url}?${new URLSearchParams(config.params || {}).toString()}`;
-  if (cache.has(key)) {
-    return cache.get(key);
+// Automatically clear cache on any mutation (POST/PUT/PATCH/DELETE)
+api.interceptors.response.use((response) => {
+  const method = response.config.method.toUpperCase();
+  if (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') {
+    clearCache();
   }
+  return response;
+}, (error) => Promise.reject(error));
+
+const getCached = async (url, config = {}) => {
+  const key = `volamp_cache_${url}?${new URLSearchParams(config.params || {}).toString()}`;
+  
+  try {
+    const cachedData = sessionStorage.getItem(key);
+    if (cachedData) {
+      return JSON.parse(cachedData);
+    }
+  } catch (e) {}
+
   const res = await api.get(url, config);
-  cache.set(key, res);
+  
+  try {
+    sessionStorage.setItem(key, JSON.stringify(res));
+  } catch (e) {}
+  
   return res;
 };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import { io } from 'socket.io-client';
+import LoginPage from './components/auth/LoginPage';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import ProfilePage from './components/layout/ProfilePage';
@@ -34,6 +35,29 @@ import {
 } from './services/api';
 
 export default function App() {
+  // ── Auth ────────────────────────────────────────
+  const [authUser, setAuthUser] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem('volamp_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
+
+  const handleLogin = (user) => {
+    setAuthUser(user);
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('volamp_token');
+    sessionStorage.removeItem('volamp_user');
+    try {
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith('volamp_cache_')) sessionStorage.removeItem(key);
+      });
+    } catch (e) {}
+    setAuthUser(null);
+  };
+
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -72,18 +96,19 @@ export default function App() {
   const [isCreateOrderModalOpen, setIsCreateOrderModalOpen] = useState(false);
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState(null);
   const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState(null);
+  const [dashboardDate, setDashboardDate] = useState('');
 
   // Fetch Dashboard Stats
   const loadDashboardStats = useCallback(async () => {
     try {
-      const res = await getDashboardStats();
+      const res = await getDashboardStats({ date: dashboardDate });
       if (res.success) {
         setStats(res.data);
       }
     } catch (err) {
       console.error('Error loading dashboard stats:', err);
     }
-  }, []);
+  }, [dashboardDate]);
 
   // Fetch Customers
   const loadCustomers = useCallback(async () => {
@@ -155,9 +180,18 @@ export default function App() {
     if (!quiet) toast.success('Database synchronized');
   };
 
-  // Real-time automatic updates
+  // Use a ref so the socket callback always sees latest handlers
+  // without needing to reconnect when state changes
+  const handleRefreshAllRef = useRef(handleRefreshAll);
+  useEffect(() => { handleRefreshAllRef.current = handleRefreshAll; });
+
+  // Real-time automatic updates — connect ONCE, never reconnect on state changes
   useEffect(() => {
-    const socket = io('http://localhost:5000');
+    const socket = io('http://localhost:5000', {
+      transports: ['websocket'],
+      reconnectionDelay: 2000,
+      reconnectionAttempts: 5,
+    });
     let timeoutId;
 
     socket.on('connect', () => {
@@ -166,11 +200,10 @@ export default function App() {
 
     socket.on('data_changed', (event) => {
       console.log('Background data change detected:', event);
-      // Debounce the refresh to prevent spamming the backend
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        clearCache(); // Flush client cache before pulling fresh data
-        handleRefreshAll(true);
+        clearCache();
+        handleRefreshAllRef.current(true);
       }, 500);
     });
 
@@ -178,15 +211,16 @@ export default function App() {
       socket.disconnect();
       clearTimeout(timeoutId);
     };
-  }, [loadDashboardStats, loadCustomers, loadProducts, loadOrders]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Initial Load
+  // Initial Load + reload data when user logs in
   useEffect(() => {
+    if (!authUser) return; // only load data when authenticated
     loadDashboardStats();
     loadCustomers();
     loadProducts();
     loadOrders();
-  }, []);
+  }, [authUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync tab data on change
   useEffect(() => {
@@ -299,6 +333,16 @@ export default function App() {
     }
   };
 
+  // ── Render ──────────────────────────────────────
+  if (!authUser) {
+    return (
+      <>
+        <Toaster position="top-right" />
+        <LoginPage onLogin={handleLogin} />
+      </>
+    );
+  }
+
   return (
     <div className="app-container">
       {/* Toast Notification Container with Dark Mode styles */}
@@ -324,6 +368,8 @@ export default function App() {
       <div className="main-content">
         <Header
           currentTab={currentTab}
+          authUser={authUser}
+          onLogout={handleLogout}
           onOpenCreateOrder={() => {
             loadCustomers();
             loadProducts();
@@ -335,6 +381,8 @@ export default function App() {
           {currentTab === 'dashboard' && (
             <DashboardView
               stats={stats}
+              selectedDate={dashboardDate}
+              setSelectedDate={setDashboardDate}
               onNavigate={(tab) => setCurrentTab(tab)}
               onViewOrder={(order) => setSelectedOrderForDetails(order)}
               onOpenCreateOrder={() => {

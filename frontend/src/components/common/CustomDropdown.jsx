@@ -75,47 +75,30 @@ export default function CustomDropdown({
   };
 
   return (
-    <div ref={dropdownRef} className={`relative w-full ${className}`}>
-      {/* Trigger Button */}
+    <div ref={dropdownRef} className={`custom-dropdown ${className}`}>
       <button
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className="form-input"
-        style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '8px',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          opacity: disabled ? 0.6 : 1,
-          textAlign: 'left',
-        }}
+        className={`custom-dropdown-trigger ${isOpen ? 'is-open' : ''} ${error ? 'has-error' : ''}`}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1, overflow: 'hidden' }}>
-          {Icon && <Icon size={14} style={{ color: 'var(--text-light)', flexShrink: 0 }} />}
-          {selectedOption?.icon && <selectedOption.icon size={14} style={{ color: 'var(--text-light)', flexShrink: 0 }} />}
-          <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+        <div className="custom-dropdown-value">
+          {Icon && <Icon size={14} className="custom-dropdown-leading-icon" />}
+          {selectedOption?.icon && <selectedOption.icon size={14} className="custom-dropdown-leading-icon" />}
+          <div className="custom-dropdown-text">
             {selectedOption ? (
-              <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{selectedOption.label}</span>
+              <span className="custom-dropdown-label">{selectedOption.label}</span>
             ) : (
-              <span style={{ color: 'var(--text-light)' }}>{placeholder}</span>
+              <span className="custom-dropdown-placeholder">{placeholder}</span>
             )}
           </div>
         </div>
         <ChevronDown
           size={15}
-          style={{
-            color: 'var(--text-light)',
-            flexShrink: 0,
-            transform: isOpen ? 'rotate(180deg)' : 'none',
-            transition: 'transform 0.2s ease',
-          }}
+          className="custom-dropdown-chevron"
         />
       </button>
 
-      {/* Dropdown Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -123,54 +106,31 @@ export default function CustomDropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: openUpwards ? 6 : -6, scale: 0.98 }}
             transition={{ duration: 0.15 }}
+            className="custom-dropdown-menu"
             style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              zIndex: 9999,
-              background: 'var(--bg-card)',
-              color: 'var(--text-main)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '12px',
-              boxShadow: 'var(--shadow-xl)',
               marginTop: openUpwards ? 0 : '4px',
               marginBottom: openUpwards ? '4px' : 0,
               bottom: openUpwards ? '100%' : 'auto',
               top: openUpwards ? 'auto' : '100%',
-              maxHeight: '260px',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
             }}
           >
-            {/* Search Input if Searchable */}
             {searchable && (
-              <div style={{ padding: '8px', borderBottom: '1px solid var(--border-color)', position: 'relative' }}>
-                <Search size={14} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
+              <div className="custom-dropdown-search-wrap">
+                <Search size={14} className="custom-dropdown-search-icon" />
                 <input
                   ref={searchInputRef}
                   type="text"
                   placeholder={searchPlaceholder}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '6px 8px 6px 28px',
-                    fontSize: '0.82rem',
-                    background: 'var(--bg-input)',
-                    color: 'var(--text-main)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '8px',
-                    outline: 'none',
-                  }}
+                  className="custom-dropdown-search"
                 />
               </div>
             )}
 
-            {/* Options List */}
-            <div style={{ overflowY: 'auto', padding: '4px', flex: 1 }}>
+            <div className="custom-dropdown-options">
               {filteredOptions.length === 0 ? (
-                <div style={{ padding: '12px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                <div className="custom-dropdown-empty">
                   No options found
                 </div>
               ) : (
@@ -182,41 +142,20 @@ export default function CustomDropdown({
                       key={String(opt.value)}
                       type="button"
                       onClick={() => handleSelect(opt.value)}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        fontSize: '0.85rem',
-                        fontWeight: isSelected ? 700 : 500,
-                        background: isSelected ? 'var(--primary-light)' : 'transparent',
-                        color: isSelected ? 'var(--primary)' : 'var(--text-main)',
-                        border: 'none',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        transition: 'background 0.15s',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) e.currentTarget.style.background = 'var(--bg-hover)';
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) e.currentTarget.style.background = 'transparent';
-                      }}
+                      className={`custom-dropdown-option ${isSelected ? 'is-selected' : ''}`}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                        {OptIcon && <OptIcon size={14} style={{ color: isSelected ? 'var(--primary)' : 'var(--text-light)' }} />}
-                        <div>
-                          <div>{opt.label}</div>
+                      <div className="custom-dropdown-option-main">
+                        {OptIcon && <OptIcon size={14} className="custom-dropdown-option-icon" />}
+                        <div className="custom-dropdown-option-copy">
+                          <div className="custom-dropdown-option-label">{opt.label}</div>
                           {opt.sublabel && (
-                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+                            <div className="custom-dropdown-option-sublabel">
                               {opt.sublabel}
                             </div>
                           )}
                         </div>
                       </div>
-                      {isSelected && <Check size={14} color="var(--primary)" />}
+                      {isSelected && <Check size={14} className="custom-dropdown-check" />}
                     </button>
                   );
                 })

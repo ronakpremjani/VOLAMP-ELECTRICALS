@@ -3,6 +3,7 @@ import { X, Building2, Phone, Mail, MapPin, FileText, DollarSign, Calendar, Mess
 import { getCustomerById, recordCustomerPayment } from '../../services/api';
 import OrderStatusBadge from '../orders/OrderStatusBadge';
 import PaymentStatusBadge from '../orders/PaymentStatusBadge';
+import CustomDropdown from '../common/CustomDropdown';
 import { openWhatsApp } from '../../utils/whatsapp';
 
 export default function CustomerDetailsModal({ isOpen, onClose, customerId, onViewOrder }) {
@@ -349,16 +350,17 @@ export default function CustomerDetailsModal({ isOpen, onClose, customerId, onVi
 
                       <div>
                         <label className="form-label" style={{ fontSize: '0.75rem' }}>Payment Method</label>
-                        <select
-                          className="form-select"
+                        <CustomDropdown
+                          options={[
+                            { value: 'UPI', label: 'UPI / QR Code' },
+                            { value: 'Bank Transfer', label: 'NEFT / RTGS / IMPS' },
+                            { value: 'Cash', label: 'Cash Receipt' },
+                            { value: 'Cheque', label: 'Cheque Deposit' },
+                          ]}
                           value={paymentMethod}
-                          onChange={(e) => setPaymentMethod(e.target.value)}
-                        >
-                          <option value="UPI">UPI / QR Code</option>
-                          <option value="Bank Transfer">NEFT / RTGS / IMPS</option>
-                          <option value="Cash">Cash Receipt</option>
-                          <option value="Cheque">Cheque Deposit</option>
-                        </select>
+                          onChange={setPaymentMethod}
+                          placeholder="Select payment method"
+                        />
                       </div>
 
                       <div>

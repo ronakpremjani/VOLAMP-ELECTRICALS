@@ -435,17 +435,19 @@ export default function CreateOrderModal({ isOpen, onClose, customers = [], prod
 
                 <div className="summary-row" style={{ alignItems: 'center' }}>
                   <span>GST Rate:</span>
-                  <select
-                    value={gstRate}
-                    onChange={(e) => setGstRate(e.target.value)}
-                    className="form-select"
-                    style={{ width: '90px', padding: '3px 6px', fontSize: '0.82rem' }}
-                  >
-                    <option value="18">18% (Std)</option>
-                    <option value="12">12%</option>
-                    <option value="5">5%</option>
-                    <option value="0">0%</option>
-                  </select>
+                  <div style={{ width: '120px' }}>
+                    <CustomDropdown
+                      options={[
+                        { value: '18', label: '18% Std' },
+                        { value: '12', label: '12%' },
+                        { value: '5', label: '5%' },
+                        { value: '0', label: '0%' },
+                      ]}
+                      value={String(gstRate)}
+                      onChange={setGstRate}
+                      placeholder="GST"
+                    />
+                  </div>
                 </div>
 
                 <div className="summary-row">

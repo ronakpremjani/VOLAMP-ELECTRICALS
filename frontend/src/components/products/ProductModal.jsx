@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import CustomDropdown from '../common/CustomDropdown';
 
 export default function ProductModal({ isOpen, onClose, onSave, initialData }) {
   const [formData, setFormData] = useState({
@@ -111,16 +112,12 @@ export default function ProductModal({ isOpen, onClose, onSave, initialData }) {
 
               <div className="form-group">
                 <label className="form-label">Category *</label>
-                <select
-                  className="form-select"
+                <CustomDropdown
+                  options={categories}
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  required
-                >
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+                  onChange={(category) => setFormData({ ...formData, category })}
+                  placeholder="Select category"
+                />
               </div>
 
               <div className="form-group">
@@ -149,16 +146,12 @@ export default function ProductModal({ isOpen, onClose, onSave, initialData }) {
 
               <div className="form-group">
                 <label className="form-label">Unit of Measure *</label>
-                <select
-                  className="form-select"
+                <CustomDropdown
+                  options={units}
                   value={formData.unit}
-                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                  required
-                >
-                  {units.map((u) => (
-                    <option key={u} value={u}>{u}</option>
-                  ))}
-                </select>
+                  onChange={(unit) => setFormData({ ...formData, unit })}
+                  placeholder="Select unit"
+                />
               </div>
 
               <div className="form-group">

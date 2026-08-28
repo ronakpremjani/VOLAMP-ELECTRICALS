@@ -155,7 +155,7 @@ const getOrderById = async (req, res) => {
 // POST /api/orders - Create new order
 const createOrder = async (req, res) => {
   try {
-    const { orderNumber: customOrderNumber, customerId, items, discount = 0, gstRate = 18, amountReceived = 0, salesperson, notes } = req.body;
+    const { orderNumber: customOrderNumber, customerId, orderDate, items, discount = 0, gstRate = 18, amountReceived = 0, salesperson, notes } = req.body;
 
     if (!customerId) {
       return res.status(400).json({ success: false, message: 'Customer selection is required' });
@@ -251,6 +251,7 @@ const createOrder = async (req, res) => {
           orderStatus: 'Pending',
           salesperson: salesperson ? salesperson.trim() : 'Store Admin',
           notes: notes ? notes.trim() : null,
+          ...(orderDate && { orderDate: new Date(orderDate) }),
           items: {
             create: totals.processedItems.map((item) => ({
               productId: item.productId,
