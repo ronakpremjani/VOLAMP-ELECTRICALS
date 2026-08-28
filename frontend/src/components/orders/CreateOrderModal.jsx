@@ -21,7 +21,7 @@ export default function CreateOrderModal({ isOpen, onClose, customers = [], prod
       // Fetch sequential next order number
       getNextOrderNumber()
         .then((res) => {
-          if (res.success) setOrderNumber(res.data.nextOrderNumber);
+          if (res.success) setOrderNumber(res.orderNumber || res.data?.nextOrderNumber || '');
         })
         .catch(() => setOrderNumber('VOL-2026-0001'));
 

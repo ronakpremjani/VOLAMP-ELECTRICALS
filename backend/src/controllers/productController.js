@@ -1,6 +1,22 @@
 const prisma = require('../config/db');
 const socket = require('../socket');
 
+function normalizeRequiredString(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function parseNonNegativeNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function parseNonNegativeInteger(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
 // GET /api/products - List products with optional search and category filters
 const getProducts = async (req, res) => {
   try {
@@ -84,15 +100,23 @@ const createProduct = async (req, res) => {
   try {
     const { name, category, brand, sku, unit, price, stock } = req.body;
 
-    if (!name || !category || !brand || !sku || !unit || price === undefined || stock === undefined) {
+    const cleanName = normalizeRequiredString(name);
+    const cleanCategory = normalizeRequiredString(category);
+    const cleanBrand = normalizeRequiredString(brand);
+    const cleanSku = normalizeRequiredString(sku).toUpperCase();
+    const cleanUnit = normalizeRequiredString(unit);
+    const parsedPrice = parseNonNegativeNumber(price);
+    const parsedStock = parseNonNegativeInteger(stock);
+
+    if (!cleanName || !cleanCategory || !cleanBrand || !cleanSku || !cleanUnit || parsedPrice === null || parsedStock === null) {
       return res.status(400).json({
         success: false,
-        message: 'All fields (name, category, brand, sku, unit, price, stock) are required',
+        message: 'All fields are required. Price and stock must be non-negative numbers.',
       });
     }
 
     const existingSku = await prisma.product.findUnique({
-      where: { sku: sku.trim().toUpperCase() },
+      where: { sku: cleanSku },
     });
 
     if (existingSku) {
@@ -104,13 +128,13 @@ const createProduct = async (req, res) => {
 
     const product = await prisma.product.create({
       data: {
-        name: name.trim(),
-        category: category.trim(),
-        brand: brand.trim(),
-        sku: sku.trim().toUpperCase(),
-        unit: unit.trim(),
-        price: parseFloat(price),
-        stock: parseInt(stock, 10),
+        name: cleanName,
+        category: cleanCategory,
+        brand: cleanBrand,
+        sku: cleanSku,
+        unit: cleanUnit,
+        price: parsedPrice,
+        stock: parsedStock,
       },
     });
 
@@ -133,9 +157,14 @@ const updateProduct = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
-    if (sku && sku.trim().toUpperCase() !== existing.sku) {
+    const cleanSku = sku !== undefined ? normalizeRequiredString(sku).toUpperCase() : existing.sku;
+    if (sku !== undefined && !cleanSku) {
+      return res.status(400).json({ success: false, message: 'SKU cannot be blank' });
+    }
+
+    if (cleanSku !== existing.sku) {
       const duplicateSku = await prisma.product.findUnique({
-        where: { sku: sku.trim().toUpperCase() },
+        where: { sku: cleanSku },
       });
       if (duplicateSku) {
         return res.status(400).json({
@@ -145,16 +174,30 @@ const updateProduct = async (req, res) => {
       }
     }
 
+    const cleanName = name !== undefined ? normalizeRequiredString(name) : existing.name;
+    const cleanCategory = category !== undefined ? normalizeRequiredString(category) : existing.category;
+    const cleanBrand = brand !== undefined ? normalizeRequiredString(brand) : existing.brand;
+    const cleanUnit = unit !== undefined ? normalizeRequiredString(unit) : existing.unit;
+    const parsedPrice = price !== undefined ? parseNonNegativeNumber(price) : existing.price;
+    const parsedStock = stock !== undefined ? parseNonNegativeInteger(stock) : existing.stock;
+
+    if (!cleanName || !cleanCategory || !cleanBrand || !cleanUnit || parsedPrice === null || parsedStock === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Product fields cannot be blank. Price and stock must be non-negative numbers.',
+      });
+    }
+
     const updated = await prisma.product.update({
       where: { id },
       data: {
-        name: name !== undefined ? name.trim() : existing.name,
-        category: category !== undefined ? category.trim() : existing.category,
-        brand: brand !== undefined ? brand.trim() : existing.brand,
-        sku: sku !== undefined ? sku.trim().toUpperCase() : existing.sku,
-        unit: unit !== undefined ? unit.trim() : existing.unit,
-        price: price !== undefined ? parseFloat(price) : existing.price,
-        stock: stock !== undefined ? parseInt(stock, 10) : existing.stock,
+        name: cleanName,
+        category: cleanCategory,
+        brand: cleanBrand,
+        sku: cleanSku,
+        unit: cleanUnit,
+        price: parsedPrice,
+        stock: parsedStock,
       },
     });
 

@@ -1,6 +1,10 @@
 const prisma = require('../config/db');
 const socket = require('../socket');
 
+function cleanString(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 // GET /api/customers - List all customers with computed Total Orders and Total Order Value
 const getCustomers = async (req, res) => {
   try {
@@ -112,7 +116,11 @@ const createCustomer = async (req, res) => {
   try {
     const { name, companyName, mobile, email, address, gstNumber, city, state } = req.body;
 
-    if (!name || !mobile || !address) {
+    const cleanName = cleanString(name);
+    const cleanMobile = cleanString(mobile);
+    const cleanAddress = cleanString(address);
+
+    if (!cleanName || !cleanMobile || !cleanAddress) {
       return res.status(400).json({
         success: false,
         message: 'Name, Mobile, and Address are required fields',
@@ -121,14 +129,14 @@ const createCustomer = async (req, res) => {
 
     const customer = await prisma.customer.create({
       data: {
-        name: name.trim(),
-        companyName: companyName ? companyName.trim() : null,
-        mobile: mobile.trim(),
-        email: email ? email.trim() : null,
-        address: address.trim(),
-        gstNumber: gstNumber ? gstNumber.trim().toUpperCase() : null,
-        city: city ? city.trim() : 'Mumbai',
-        state: state ? state.trim() : 'Maharashtra',
+        name: cleanName,
+        companyName: cleanString(companyName) || null,
+        mobile: cleanMobile,
+        email: cleanString(email) || null,
+        address: cleanAddress,
+        gstNumber: cleanString(gstNumber).toUpperCase() || null,
+        city: cleanString(city) || 'Mumbai',
+        state: cleanString(state) || 'Maharashtra',
       },
     });
 
@@ -190,17 +198,28 @@ const updateCustomer = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }
 
+    const cleanName = name !== undefined ? cleanString(name) : existing.name;
+    const cleanMobile = mobile !== undefined ? cleanString(mobile) : existing.mobile;
+    const cleanAddress = address !== undefined ? cleanString(address) : existing.address;
+
+    if (!cleanName || !cleanMobile || !cleanAddress) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, Mobile, and Address are required fields',
+      });
+    }
+
     const updated = await prisma.customer.update({
       where: { id },
       data: {
-        name: name !== undefined ? name.trim() : existing.name,
-        companyName: companyName !== undefined ? (companyName ? companyName.trim() : null) : existing.companyName,
-        mobile: mobile !== undefined ? mobile.trim() : existing.mobile,
-        email: email !== undefined ? (email ? email.trim() : null) : existing.email,
-        address: address !== undefined ? address.trim() : existing.address,
-        gstNumber: gstNumber !== undefined ? (gstNumber ? gstNumber.trim().toUpperCase() : null) : existing.gstNumber,
-        city: city !== undefined ? city.trim() : existing.city,
-        state: state !== undefined ? state.trim() : existing.state,
+        name: cleanName,
+        companyName: companyName !== undefined ? cleanString(companyName) || null : existing.companyName,
+        mobile: cleanMobile,
+        email: email !== undefined ? cleanString(email) || null : existing.email,
+        address: cleanAddress,
+        gstNumber: gstNumber !== undefined ? cleanString(gstNumber).toUpperCase() || null : existing.gstNumber,
+        city: city !== undefined ? cleanString(city) || existing.city : existing.city,
+        state: state !== undefined ? cleanString(state) || existing.state : existing.state,
       },
     });
 

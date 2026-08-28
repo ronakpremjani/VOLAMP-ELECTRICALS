@@ -3,9 +3,12 @@ const prisma = require('../config/db');
 // GET /api/notifications
 const getNotifications = async (req, res) => {
   try {
+    const requestedLimit = Number.parseInt(req.query.limit, 10);
+    const take = Number.isInteger(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, 100) : 20;
+
     const notifications = await prisma.notification.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 20,
+      take,
     });
     const unreadCount = await prisma.notification.count({ where: { isRead: false } });
     res.json({ success: true, count: notifications.length, unreadCount, data: notifications });

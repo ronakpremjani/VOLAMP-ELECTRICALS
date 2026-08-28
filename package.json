@@ -10,7 +10,8 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "seed": "npm --prefix backend run seed",
     "clear-db": "npm --prefix backend run clear-db",
-    "build": "npm --prefix frontend run build"
+    "build": "npm --prefix frontend run build",
+    "test": "npm --prefix backend test && npm --prefix frontend run build"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -5,16 +5,65 @@ const socket = require('../socket');
 // Helper to generate unique order number like VOL-2026-0001
 async function generateOrderNumber() {
   const currentYear = new Date().getFullYear();
-  const count = await prisma.order.count();
-  const paddedIndex = String(count + 1).padStart(4, '0');
+  const prefix = `VOL-${currentYear}-`;
+  const latestOrder = await prisma.order.findFirst({
+    where: { orderNumber: { startsWith: prefix } },
+    orderBy: { orderNumber: 'desc' },
+    select: { orderNumber: true },
+  });
+  const latestIndex = latestOrder ? Number.parseInt(latestOrder.orderNumber.slice(prefix.length), 10) : 0;
+  const paddedIndex = String((Number.isFinite(latestIndex) ? latestIndex : 0) + 1).padStart(4, '0');
   return `VOL-${currentYear}-${paddedIndex}`;
+}
+
+function parsePositiveInteger(value) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function parseNonNegativeNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function aggregateQuantities(items) {
+  return items.reduce((map, item) => {
+    if (!item.productId) return map;
+    map.set(item.productId, (map.get(item.productId) || 0) + item.quantity);
+    return map;
+  }, new Map());
+}
+
+async function decrementStockOrThrow(tx, productId, quantity, productName = 'selected product') {
+  const result = await tx.product.updateMany({
+    where: {
+      id: productId,
+      stock: { gte: quantity },
+    },
+    data: {
+      stock: { decrement: quantity },
+    },
+  });
+
+  if (result.count !== 1) {
+    throw new Error(`Insufficient stock for '${productName}'. Please refresh inventory and try again.`);
+  }
+}
+
+async function incrementStock(tx, productId, quantity) {
+  if (!productId) return;
+  await tx.product.update({
+    where: { id: productId },
+    data: { stock: { increment: quantity } },
+  });
 }
 
 // GET /api/orders/next-number - Fetch next sequential order ID
 const getNextOrderNumber = async (req, res) => {
   try {
     const orderNumber = await generateOrderNumber();
-    res.json({ success: true, orderNumber });
+    res.json({ success: true, orderNumber, data: { nextOrderNumber: orderNumber } });
   } catch (error) {
     console.error('Error getting next order number:', error);
     res.status(500).json({ success: false, message: 'Failed to generate next order number' });
@@ -122,22 +171,42 @@ const createOrder = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Selected customer does not exist' });
     }
 
+    const normalizedItems = [];
+    for (const item of items) {
+      const quantity = parsePositiveInteger(item.quantity);
+      const unitPrice = item.unitPrice === undefined ? undefined : parseNonNegativeNumber(item.unitPrice);
+
+      if (!item.productId || !quantity || (item.unitPrice !== undefined && unitPrice === null)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Each order item must include a valid product, positive quantity, and non-negative unit price',
+        });
+      }
+
+      normalizedItems.push({
+        productId: item.productId,
+        quantity,
+        unitPrice,
+      });
+    }
+
     // Verify products and validate stock
-    const productIds = items.map((i) => i.productId);
+    const productIds = normalizedItems.map((i) => i.productId);
+    const uniqueProductIds = Array.from(new Set(productIds));
     const dbProducts = await prisma.product.findMany({
-      where: { id: { in: productIds } },
+      where: { id: { in: uniqueProductIds } },
     });
 
-    if (dbProducts.length !== productIds.length) {
+    if (dbProducts.length !== uniqueProductIds.length) {
       return res.status(400).json({ success: false, message: 'One or more selected products are invalid' });
     }
 
     const productMap = new Map(dbProducts.map((p) => [p.id, p]));
 
-    // Check stock for each item
-    for (const item of items) {
-      const product = productMap.get(item.productId);
-      const requestedQty = parseInt(item.quantity, 10) || 1;
+    // Check aggregate stock for duplicate line items of the same product
+    const requestedByProduct = aggregateQuantities(normalizedItems);
+    for (const [productId, requestedQty] of requestedByProduct.entries()) {
+      const product = productMap.get(productId);
       if (product.stock < requestedQty) {
         return res.status(400).json({
           success: false,
@@ -148,10 +217,10 @@ const createOrder = async (req, res) => {
 
     // Calculate totals using central business logic utility
     const totals = calculateOrderTotals({
-      items: items.map((item) => ({
+      items: normalizedItems.map((item) => ({
         productId: item.productId,
-        quantity: parseInt(item.quantity, 10),
-        unitPrice: item.unitPrice !== undefined ? parseFloat(item.unitPrice) : productMap.get(item.productId).price,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice !== undefined ? item.unitPrice : productMap.get(item.productId).price,
       })),
       discount,
       gstRate,
@@ -159,6 +228,10 @@ const createOrder = async (req, res) => {
     });
 
     const finalOrderNumber = customOrderNumber?.trim() || (await generateOrderNumber());
+    const existingOrderNumber = await prisma.order.findUnique({ where: { orderNumber: finalOrderNumber } });
+    if (existingOrderNumber) {
+      return res.status(400).json({ success: false, message: `Order number '${finalOrderNumber}' already exists` });
+    }
 
     // Run order creation and stock deduction in a database transaction
     const newOrder = await prisma.$transaction(async (tx) => {
@@ -193,14 +266,9 @@ const createOrder = async (req, res) => {
         },
       });
 
-      // 2. Deduct inventory stock for each product
-      for (const item of totals.processedItems) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: { decrement: item.quantity },
-          },
-        });
+      // 2. Deduct inventory stock atomically for each product
+      for (const [productId, quantity] of requestedByProduct.entries()) {
+        await decrementStockOrThrow(tx, productId, quantity, productMap.get(productId)?.name);
       }
 
       await tx.notification.create({
@@ -223,7 +291,8 @@ const createOrder = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating order:', error);
-    res.status(500).json({ success: false, message: error.message || 'Server error while creating order' });
+    const isStockError = error.message && error.message.startsWith('Insufficient stock');
+    res.status(isStockError ? 400 : 500).json({ success: false, message: error.message || 'Server error while creating order' });
   }
 };
 
@@ -258,20 +327,15 @@ const updateOrderStatus = async (req, res) => {
       // If cancelling an active order, return stock to inventory
       if (!wasCancelled && isNowCancelled) {
         for (const item of existing.items) {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { increment: item.quantity } },
-          });
+          await incrementStock(tx, item.productId, item.quantity);
         }
       }
 
       // If re-activating a cancelled order, re-deduct stock
       if (wasCancelled && !isNowCancelled) {
-        for (const item of existing.items) {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { decrement: item.quantity } },
-          });
+        const requestedByProduct = aggregateQuantities(existing.items);
+        for (const [productId, quantity] of requestedByProduct.entries()) {
+          await decrementStockOrThrow(tx, productId, quantity);
         }
       }
 
@@ -304,7 +368,11 @@ const updateOrderStatus = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating order status:', error);
-    res.status(500).json({ success: false, message: 'Server error while updating order status' });
+    const isStockError = error.message && error.message.startsWith('Insufficient stock');
+    res.status(isStockError ? 400 : 500).json({
+      success: false,
+      message: isStockError ? error.message : 'Server error while updating order status',
+    });
   }
 };
 
@@ -388,10 +456,7 @@ const deleteOrder = async (req, res) => {
       // If not cancelled, restore inventory on deletion
       if (existing.orderStatus !== 'Cancelled') {
         for (const item of existing.items) {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { increment: item.quantity } },
-          });
+          await incrementStock(tx, item.productId, item.quantity);
         }
       }
 

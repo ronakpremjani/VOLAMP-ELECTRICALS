@@ -11,5 +11,6 @@ router.get('/', getNotifications);
 router.patch('/read-all', markAllAsRead);
 router.patch('/:id/read', markAsRead);
 router.delete('/clear', clearNotifications);
+router.delete('/clear-all', clearNotifications);
 
 module.exports = router;

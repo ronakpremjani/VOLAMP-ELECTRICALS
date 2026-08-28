@@ -1,6 +1,6 @@
 # ─────────────────────────────────────────────
 #  VOLAMP ELECTRICALS — .gitignore
-#  Node.js · React/Vite · Prisma/SQLite
+#  Node.js · React/Vite · Prisma/PostgreSQL
 # ─────────────────────────────────────────────
 
 # ── Dependencies ─────────────────────────────

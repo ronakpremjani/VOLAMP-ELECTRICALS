@@ -3,16 +3,26 @@
  * Handles Subtotal, Discounts, GST (18% standard for electrical goods), Grand Total & Balance calculations.
  */
 
+function parseMoney(value, fallback = 0) {
+  if (value === null || value === undefined || value === '') return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function parseQuantity(value) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+}
+
 function calculateOrderTotals({ items, discount = 0, gstRate = 18, amountReceived = 0 }) {
-  const parsedDiscount = Math.max(0, parseFloat(discount) || 0);
-  const parsedGstRate = Math.max(0, parseFloat(gstRate) !== undefined ? parseFloat(gstRate) : 18);
-  const parsedAmountReceived = Math.max(0, parseFloat(amountReceived) || 0);
+  const parsedGstRate = Math.max(0, parseMoney(gstRate, 18));
+  const parsedAmountReceived = Math.max(0, parseMoney(amountReceived, 0));
 
   // Calculate items and subtotal
   let subtotal = 0;
   const processedItems = (items || []).map((item) => {
-    const qty = parseInt(item.quantity, 10) || 1;
-    const price = parseFloat(item.unitPrice) || 0;
+    const qty = parseQuantity(item.quantity);
+    const price = Math.max(0, parseMoney(item.unitPrice, 0));
     const amount = Number((qty * price).toFixed(2));
     subtotal += amount;
 
@@ -27,6 +37,7 @@ function calculateOrderTotals({ items, discount = 0, gstRate = 18, amountReceive
   subtotal = Number(subtotal.toFixed(2));
 
   // Calculate taxable amount after discount
+  const parsedDiscount = Math.min(Math.max(0, parseMoney(discount, 0)), subtotal);
   const taxableAmount = Math.max(0, Number((subtotal - parsedDiscount).toFixed(2)));
 
   // GST Calculation (18% for Electrical materials & equipment)

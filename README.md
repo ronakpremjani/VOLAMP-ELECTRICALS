@@ -30,7 +30,7 @@ graph LR
 
 - **Frontend**: React 18, Vite, Lucide Icons, Plus Jakarta Sans & JetBrains Mono typography, Modern responsive Design Tokens with custom glassmorphism and print styling.
 - **Backend**: Node.js, Express.js (RESTful MVC architecture: Routes, Controllers, Transactions, Business Utils).
-- **Database**: SQLite with Prisma ORM (zero-configuration local setup with full relational integrity and transactional safety).
+- **Database**: PostgreSQL/Supabase with Prisma ORM for relational integrity and transactional safety.
 - **Dev Tools**: Concurrently, Nodemon, Morgan logger, Axios.
 
 ---
@@ -43,7 +43,7 @@ VOLAMP ELECTRICALS/
 │   ├── prisma/
 │   │   ├── schema.prisma          # Database schema (Customer, Product, Order, OrderItem)
 │   │   ├── seed.js                # Seed script with 18 electrical products & 5 customers
-│   │   └── dev.db                 # SQLite database file
+│   │   └── schema.prisma          # PostgreSQL Prisma schema
 │   ├── src/
 │   │   ├── config/
 │   │   │   └── db.js              # Prisma Client initialization
@@ -221,4 +221,4 @@ When presenting during the live review, you can reference the following files:
 
 - **User Authentication**: Currently runs in Store Admin mode; multi-user JWT authentication with role-based access control (Admin, Salesperson, Warehouse Dispatcher) can be added.
 - **PDF Export**: Invoices are printable via native browser print stylesheets; server-side PDF generation (e.g. using Puppeteer or PDFKit) can be integrated for automated email attachments.
-- **Database Engine**: Uses SQLite for zero-setup local demo review. The Prisma schema is 100% compatible with PostgreSQL and MySQL by changing one line in `schema.prisma`.
+- **Database Engine**: Configured for PostgreSQL/Supabase through Prisma. A local PostgreSQL URL can be used for offline development by changing `DATABASE_URL` and `DIRECT_URL` in `backend/.env`.
