@@ -322,7 +322,7 @@ export default function App() {
 
   const handleUpdateOrderPayment = async (orderId, amountReceived) => {
     try {
-      const res = await updateOrderPayment(orderId, amountReceived);
+      const res = await updateOrderPayment(orderId, { amountReceived });
       toast.success(res.message || 'Payment recorded successfully');
       loadOrders();
       loadDashboardStats();
