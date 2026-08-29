@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, RefreshCw, Bell, LogOut, User } from 'lucide-react';
+import { Plus, RefreshCw, Bell, LogOut, User, Menu } from 'lucide-react';
 import { getNotifications, markAllNotificationsAsRead, markNotificationAsRead, clearAllNotifications } from '../../services/api';
 import { formatDateTime } from '../../utils/date';
 
@@ -7,6 +7,8 @@ export default function Header({
   currentTab,
   authUser,
   onLogout,
+  onOpenCreateOrder,
+  onToggleSidebar
 }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -62,9 +64,18 @@ export default function Header({
 
   return (
     <header className="top-header">
-      <div className="header-title-wrap">
-        <h1>{current.title}</h1>
-        <p>{current.subtitle}</p>
+      <div className="header-title-wrap" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <button 
+          className="mobile-menu-btn" 
+          onClick={onToggleSidebar}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'none' }}
+        >
+          <Menu size={24} color="var(--text-main)" />
+        </button>
+        <div>
+          <h1>{current.title}</h1>
+          <p>{current.subtitle}</p>
+        </div>
       </div>
 
       <div className="header-actions">

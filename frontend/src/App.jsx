@@ -37,6 +37,7 @@ import {
 
 export default function App() {
   // ── Auth ────────────────────────────────────────
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [authUser, setAuthUser] = useState(() => {
     try {
       const stored = sessionStorage.getItem('volamp_user');
@@ -372,11 +373,12 @@ export default function App() {
         }}
       />
 
-      <Sidebar stats={stats} />
+      <Sidebar stats={stats} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       <div className="main-content">
         <Header
           currentTab={currentPath.replace('/', '') || 'dashboard'}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           authUser={authUser}
           onLogout={handleLogout}
           onOpenCreateOrder={() => {

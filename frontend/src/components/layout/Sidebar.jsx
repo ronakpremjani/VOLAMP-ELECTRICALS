@@ -1,8 +1,8 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingCart, Users, Package, Zap, UserCircle2 } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Users, Package, Zap, UserCircle2, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-export default function Sidebar({ stats }) {
+export default function Sidebar({ stats, isOpen, onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
@@ -15,17 +15,36 @@ export default function Sidebar({ stats }) {
   ];
 
   return (
-    <aside className="sidebar">
-      {/* Brand */}
-      <div className="sidebar-brand">
-        <div className="brand-icon">
-          <Zap size={20} />
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {isOpen && (
+        <div 
+          className="sidebar-overlay" 
+          onClick={onClose}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 40, display: 'none' }}
+        />
+      )}
+      <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+        {/* Brand */}
+        <div className="sidebar-brand" style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="brand-icon">
+              <Zap size={20} />
+            </div>
+            <div className="brand-info">
+              <h2>Volamp</h2>
+              <span>Electricals OMS</span>
+            </div>
+          </div>
+          {/* Mobile Close Button */}
+          <button 
+            className="mobile-close-btn" 
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'none' }}
+          >
+            <X size={20} />
+          </button>
         </div>
-        <div className="brand-info">
-          <h2>Volamp</h2>
-          <span>Electricals OMS</span>
-        </div>
-      </div>
 
       {/* Main Navigation */}
       <nav className="sidebar-nav">
@@ -83,6 +102,7 @@ export default function Sidebar({ stats }) {
         </div>
       </div>
     </aside>
+    </>
   );
 }
 
