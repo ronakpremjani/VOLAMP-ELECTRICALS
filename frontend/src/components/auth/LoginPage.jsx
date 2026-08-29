@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Zap, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import api from '../../services/api';
 
 export default function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -20,6 +21,9 @@ export default function LoginPage({ onLogin }) {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
+      const res = await api.post('/auth/login', { email, password });
+      const data = res.data;
+      if (!data.success) {
         setError(data.message || 'Invalid email or password.');
         return;
       }
