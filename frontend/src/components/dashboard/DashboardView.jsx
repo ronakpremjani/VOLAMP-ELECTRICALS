@@ -6,10 +6,10 @@ import DatePicker from '../common/DatePicker';
 import {
   ShoppingCart, Clock, CheckCircle2, Truck, PackageCheck,
   XCircle, Users, Package, AlertTriangle,
-  ArrowRight, Eye, TrendingUp, Zap, Plus,
+  ArrowRight, Eye, TrendingUp, Zap, Plus, Loader2
 } from 'lucide-react';
 
-export default function DashboardView({ stats, onNavigate, onViewOrder, onOpenCreateOrder, selectedDate, setSelectedDate }) {
+export default function DashboardView({ stats, loading, onNavigate, onViewOrder, onOpenCreateOrder, selectedDate, setSelectedDate }) {
   const kpis = stats?.kpis || {};
   const inventory = stats?.inventory || {};
   const recentOrders = stats?.recentOrders || [];
@@ -19,7 +19,23 @@ export default function DashboardView({ stats, onNavigate, onViewOrder, onOpenCr
     : 0;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative' }}>
+      
+      {loading && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'rgba(255, 255, 255, 0.5)',
+          backdropFilter: 'blur(2px)',
+          zIndex: 50,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          borderRadius: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg-card)', padding: '12px 24px', borderRadius: '99px', boxShadow: 'var(--shadow-lg)', fontWeight: 600, color: 'var(--text-main)', fontSize: '0.85rem' }}>
+            <Loader2 size={18} className="animate-spin" color="var(--primary)" />
+            Syncing data...
+          </div>
+        </div>
+      )}
 
       {/* ── Header row with date filter ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -30,7 +46,7 @@ export default function DashboardView({ stats, onNavigate, onViewOrder, onOpenCr
           </div>
         </div>
         <div style={{ width: '200px' }}>
-          <DatePicker value={selectedDate} onChange={setSelectedDate} placeholder="Filter by date..." />
+          <DatePicker value={selectedDate} onChange={setSelectedDate} placeholder="Filter by date..." placement="right" />
         </div>
       </div>
 

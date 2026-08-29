@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Plus, Edit2, Trash2, Eye, Building2, Phone, MapPin, X, FileSpreadsheet, User, Filter } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Eye, Building2, Phone, MapPin, X, FileSpreadsheet, User, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import CustomDropdown from '../common/CustomDropdown';
 
 export default function CustomerListView({
@@ -12,12 +12,23 @@ export default function CustomerListView({
   setSelectedCity,
   hasBalance,
   setHasBalance,
+  sortBy,
+  setSortBy,
   onOpenAddModal,
   onOpenEditModal,
   onOpenDetailsModal,
   onDeleteCustomer,
 }) {
   const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 15;
+
+  const totalPages = Math.max(1, Math.ceil(customers.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedCustomers = customers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  // Reset to page 1 whenever the customer list changes (filter/sort)
+  React.useEffect(() => { setCurrentPage(1); }, [customers.length]);
 
   return (
     <div>
@@ -146,6 +157,7 @@ export default function CustomerListView({
                 { (selectedCity !== 'All' || hasBalance !== 'All' || sortBy !== 'recent') && (
                   <button 
                     className="btn btn-secondary btn-sm" 
+                    onClick={() => { setSelectedCity('All'); setHasBalance('All'); setSortBy('recent'); }}
                     style={{ marginTop: '0.25rem', width: '100%', justifyContent: 'center' }}
                   >
                     Clear Filters
@@ -192,7 +204,7 @@ export default function CustomerListView({
                 </td>
               </tr>
             ) : (
-              customers.map((c) => {
+              pagedCustomers.map((c) => {
                 const hasDue = (c.totalBalanceDue || 0) > 0;
                 return (
                   <tr key={c.id}>
@@ -324,6 +336,86 @@ export default function CustomerListView({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Footer */}
+      {!loading && customers.length > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.9rem 1.25rem',
+          borderTop: '1px solid var(--border-color)',
+          background: 'var(--bg-card)',
+          borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+          marginTop: '-1px',
+        }}>
+          {/* Left: count info */}
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            Showing <strong style={{ color: 'var(--text-main)' }}>{(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, customers.length)}</strong> of <strong style={{ color: 'var(--text-main)' }}>{customers.length}</strong> customers
+          </span>
+
+          {/* Centre: page buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '4px 8px' }}
+              disabled={safePage === 1}
+              onClick={() => setCurrentPage(safePage - 1)}
+            >
+              <ChevronLeft size={15} />
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(pg => pg === 1 || pg === totalPages || Math.abs(pg - safePage) <= 1)
+              .reduce((acc, pg, idx, arr) => {
+                if (idx > 0 && pg - arr[idx - 1] > 1) {
+                  acc.push('...');
+                }
+                acc.push(pg);
+                return acc;
+              }, [])
+              .map((pg, idx) =>
+                pg === '...' ? (
+                  <span key={`ellipsis-${idx}`} style={{ padding: '0 6px', color: 'var(--text-muted)', fontSize: '0.8rem' }}>…</span>
+                ) : (
+                  <button
+                    key={pg}
+                    onClick={() => setCurrentPage(pg)}
+                    style={{
+                      minWidth: 32,
+                      height: 32,
+                      borderRadius: 'var(--radius-sm)',
+                      border: pg === safePage ? 'none' : '1px solid var(--border-color)',
+                      background: pg === safePage ? 'var(--primary)' : 'transparent',
+                      color: pg === safePage ? '#fff' : 'var(--text-main)',
+                      fontWeight: pg === safePage ? 700 : 500,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {pg}
+                  </button>
+                )
+              )
+            }
+
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '4px 8px' }}
+              disabled={safePage === totalPages}
+              onClick={() => setCurrentPage(safePage + 1)}
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+
+          {/* Right: rows per page hint */}
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            Page <strong style={{ color: 'var(--text-main)' }}>{safePage}</strong> of <strong style={{ color: 'var(--text-main)' }}>{totalPages}</strong>
+          </span>
+        </div>
+      )}
     </div>
   );
 }

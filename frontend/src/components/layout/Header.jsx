@@ -180,21 +180,6 @@ export default function Header({
         {/* User badge + Logout */}
         {authUser && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '7px',
-              background: 'var(--bg-subtle)', border: '1px solid var(--border-color)',
-              borderRadius: '999px', padding: '5px 12px 5px 8px',
-              fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)',
-            }}>
-              <div style={{
-                width: '26px', height: '26px', borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--primary), #6366f1)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <User size={14} color="#fff" />
-              </div>
-              {authUser.name}
-            </div>
             <button
               type="button"
               className="theme-toggle-btn"

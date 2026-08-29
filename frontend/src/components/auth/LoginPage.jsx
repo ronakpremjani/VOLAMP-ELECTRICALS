@@ -48,9 +48,6 @@ export default function LoginPage({ onLogin }) {
           </div>
         </div>
 
-        <h2 className="login-heading">Welcome back 👋</h2>
-        <p className="login-subheading">Sign in to your account to continue</p>
-
         <form onSubmit={handleSubmit} className="login-form">
           {/* Email */}
           <div className="login-field">

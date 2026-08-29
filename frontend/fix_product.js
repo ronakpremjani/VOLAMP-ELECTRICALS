@@ -1,0 +1,1 @@
+const fs = require("fs"); const c = fs.readFileSync("src/components/products/ProductListView.jsx", "utf8"); const lines = c.split("\n"); console.log("Total lines:", lines.length); console.log("Line 1:", lines[0]); console.log("Line 2:", lines[1]); console.log("Line 22:", lines[21]); console.log("Line 23:", lines[22]);

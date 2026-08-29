@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Plus, Edit2, Trash2, CheckCircle2, AlertTriangle, X, Package, Tag, Layers, Filter } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, CheckCircle2, AlertTriangle, X, Package, Tag, Layers, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import CustomDropdown from '../common/CustomDropdown';
 
 export default function ProductListView({
@@ -14,11 +14,22 @@ export default function ProductListView({
   setSelectedBrand,
   lowStock,
   setLowStock,
+  sortBy,
+  setSortBy,
   onOpenAddModal,
   onOpenEditModal,
   onDeleteProduct,
 }) {
   const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 15;
+
+  const totalPages = Math.max(1, Math.ceil(products.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedProducts = products.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  // Reset to page 1 whenever the product list changes (filter/sort)
+  React.useEffect(() => { setCurrentPage(1); }, [products.length]);
 
   return (
     <div>
@@ -70,7 +81,7 @@ export default function ProductListView({
             >
               <Filter size={15} />
               <span>Filters</span>
-              {(selectedCategory !== 'All' || selectedBrand !== 'All' || lowStock !== 'All') && (
+              {(selectedCategory !== 'All' || selectedBrand !== 'All' || lowStock !== 'All' || sortBy !== 'name_asc') && (
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: showFilters ? '#fff' : 'var(--primary)', marginLeft: 2 }}></div>
               )}
             </button>
@@ -160,6 +171,7 @@ export default function ProductListView({
                 { (selectedCategory !== 'All' || selectedBrand !== 'All' || lowStock !== 'All' || sortBy !== 'name_asc') && (
                   <button 
                     className="btn btn-secondary btn-sm" 
+                    onClick={() => { setSelectedCategory('All'); setSelectedBrand('All'); setLowStock('All'); setSortBy('name_asc'); }}
                     style={{ marginTop: '0.25rem', width: '100%', justifyContent: 'center' }}
                   >
                     Clear Filters
@@ -205,7 +217,7 @@ export default function ProductListView({
                 </td>
               </tr>
             ) : (
-              products.map((p) => {
+              pagedProducts.map((p) => {
                 const isLowStock = p.stock <= 10 && p.stock > 0;
                 const isOutOfStock = p.stock <= 0;
 
@@ -304,6 +316,86 @@ export default function ProductListView({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Footer */}
+      {!loading && products.length > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.9rem 1.25rem',
+          borderTop: '1px solid var(--border-color)',
+          background: 'var(--bg-card)',
+          borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+          marginTop: '-1px',
+        }}>
+          {/* Left: count info */}
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            Showing <strong style={{ color: 'var(--text-main)' }}>{(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, products.length)}</strong> of <strong style={{ color: 'var(--text-main)' }}>{products.length}</strong> products
+          </span>
+
+          {/* Centre: page buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '4px 8px' }}
+              disabled={safePage === 1}
+              onClick={() => setCurrentPage(safePage - 1)}
+            >
+              <ChevronLeft size={15} />
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(pg => pg === 1 || pg === totalPages || Math.abs(pg - safePage) <= 1)
+              .reduce((acc, pg, idx, arr) => {
+                if (idx > 0 && pg - arr[idx - 1] > 1) {
+                  acc.push('...');
+                }
+                acc.push(pg);
+                return acc;
+              }, [])
+              .map((pg, idx) =>
+                pg === '...' ? (
+                  <span key={`ellipsis-${idx}`} style={{ padding: '0 6px', color: 'var(--text-muted)', fontSize: '0.8rem' }}>…</span>
+                ) : (
+                  <button
+                    key={pg}
+                    onClick={() => setCurrentPage(pg)}
+                    style={{
+                      minWidth: 32,
+                      height: 32,
+                      borderRadius: 'var(--radius-sm)',
+                      border: pg === safePage ? 'none' : '1px solid var(--border-color)',
+                      background: pg === safePage ? 'var(--primary)' : 'transparent',
+                      color: pg === safePage ? '#fff' : 'var(--text-main)',
+                      fontWeight: pg === safePage ? 700 : 500,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {pg}
+                  </button>
+                )
+              )
+            }
+
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '4px 8px' }}
+              disabled={safePage === totalPages}
+              onClick={() => setCurrentPage(safePage + 1)}
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+
+          {/* Right: rows per page hint */}
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            Page <strong style={{ color: 'var(--text-main)' }}>{safePage}</strong> of <strong style={{ color: 'var(--text-main)' }}>{totalPages}</strong>
+          </span>
+        </div>
+      )}
     </div>
   );
 }

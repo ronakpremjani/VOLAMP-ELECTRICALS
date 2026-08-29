@@ -141,7 +141,8 @@ export default function DatePicker({ value, onChange, placeholder = 'Select Date
             className="custom-calendar-popup"
             style={{
               position: 'absolute',
-              left: 0,
+              left: placement === 'right' ? 'auto' : 0,
+              right: placement === 'right' ? 0 : 'auto',
               width: '260px',
               background: 'var(--bg-card)',
               border: '1px solid var(--border-color)',

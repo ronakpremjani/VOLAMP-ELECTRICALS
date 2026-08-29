@@ -81,12 +81,14 @@ export default function App() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerCity, setCustomerCity] = useState('All');
   const [customerHasBalance, setCustomerHasBalance] = useState('All');
+  const [customerSortBy, setCustomerSortBy] = useState('recent');
   const [customerFilters, setCustomerFilters] = useState({ cities: [] });
 
   const [productSearch, setProductSearch] = useState('');
   const [productCategory, setProductCategory] = useState('All');
   const [productBrand, setProductBrand] = useState('All');
   const [productLowStock, setProductLowStock] = useState('All');
+  const [productSortBy, setProductSortBy] = useState('name_asc');
 
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('All');
@@ -110,7 +112,7 @@ export default function App() {
   // Callbacks
   const loadDashboardStats = useCallback(async (showToast = false) => {
     try {
-      const res = await getDashboardStats(dashboardDate);
+      const res = await getDashboardStats(dashboardDate ? { date: dashboardDate } : {});
       setStats(res.data);
       if (showToast) toast.success('Dashboard updated');
     } catch (err) {
@@ -124,6 +126,7 @@ export default function App() {
       const params = { search: customerSearch };
       if (customerCity !== 'All') params.city = customerCity;
       if (customerHasBalance === 'Yes') params.hasBalance = 'true';
+      if (customerSortBy !== 'recent') params.sortBy = customerSortBy;
       
       const res = await getCustomers(params);
       setCustomers(res.data || []);
@@ -134,13 +137,15 @@ export default function App() {
     } finally {
       setLoadingCustomers(false);
     }
-  }, [customerSearch, customerCity, customerHasBalance]);
+  }, [customerSearch, customerCity, customerHasBalance, customerSortBy]);
 
   const loadProducts = useCallback(async (showToast = false) => {
     try {
       setLoadingProducts(true);
       const params = { search: productSearch, category: productCategory, brand: productBrand };
       if (productLowStock === 'Yes') params.lowStock = 'true';
+      if (productSortBy !== 'name_asc') params.sortBy = productSortBy;
+      
       const res = await getProducts(params);
       setProducts(res.data || []);
       
@@ -154,7 +159,7 @@ export default function App() {
     } finally {
       setLoadingProducts(false);
     }
-  }, [productSearch, productCategory, productBrand, productLowStock]);
+  }, [productSearch, productCategory, productBrand, productLowStock, productSortBy]);
 
   const loadOrders = useCallback(async (showToast = false) => {
     try {
@@ -434,6 +439,8 @@ export default function App() {
                 setSelectedCity={setCustomerCity}
                 hasBalance={customerHasBalance}
                 setHasBalance={setCustomerHasBalance}
+                sortBy={customerSortBy}
+                setSortBy={setCustomerSortBy}
                 onOpenAddModal={() => {
                   setSelectedCustomerForEdit(null);
                   setIsCustomerModalOpen(true);
@@ -462,6 +469,8 @@ export default function App() {
                 setSelectedBrand={setProductBrand}
                 lowStock={productLowStock}
                 setLowStock={setProductLowStock}
+                sortBy={productSortBy}
+                setSortBy={setProductSortBy}
                 onOpenAddModal={() => {
                   setSelectedProductForEdit(null);
                   setIsProductModalOpen(true);
