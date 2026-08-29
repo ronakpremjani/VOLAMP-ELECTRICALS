@@ -7,7 +7,6 @@ module.exports = {
     io = new Server(httpServer, {
       cors: {
         origin: '*', // Allow frontend to connect
-        origin: ['http://localhost:5173', 'https://volamp-electricals.vercel.app'],
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
       }
     });

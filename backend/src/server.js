@@ -21,20 +21,8 @@ const PORT = process.env.PORT || 5000;
 io.init(server);
 
 // Middleware
-const allowedOrigins = [
-  'http://localhost:5173',
-  'https://volamp-electricals.vercel.app'
-];
-
 app.use(cors({
   origin: '*',
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));

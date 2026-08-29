@@ -14,13 +14,6 @@ export default function LoginPage({ onLogin }) {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
       const res = await api.post('/auth/login', { email, password });
       const data = res.data;
       if (!data.success) {
