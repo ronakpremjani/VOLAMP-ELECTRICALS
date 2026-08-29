@@ -12,7 +12,7 @@
     "prisma:push": "prisma db push",
     "seed": "node prisma/seed.js",
     "clear-db": "node prisma/clear.js",
-    "build": "npx prisma generate"
+    "build": "npx prisma generate --schema=./prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
@@ -35,5 +35,8 @@
     "jest-mock-extended": "^4.0.1",
     "nodemon": "^3.1.14",
     "supertest": "^7.2.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
