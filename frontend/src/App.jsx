@@ -197,6 +197,10 @@ export default function App() {
     if (!authUser) return; // don't connect socket if not logged in
 
     const socket = io('http://localhost:5000', {
+    const socketUrl = import.meta.env.VITE_API_URL 
+      ? import.meta.env.VITE_API_URL.replace('/api', '') 
+      : 'http://localhost:5000';
+    const socket = io(socketUrl, {
       reconnectionDelay: 2000,
       reconnectionAttempts: 5,
     });
