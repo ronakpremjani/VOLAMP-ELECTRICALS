@@ -12,7 +12,7 @@
     "prisma:push": "prisma db push",
     "seed": "node prisma/seed.js",
     "clear-db": "node prisma/clear.js",
-    "build": "prisma generate"
+    "build": "npx prisma generate"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
