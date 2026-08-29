@@ -27,13 +27,13 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.0",
     "pg": "^8.23.0",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "prisma": "^7.9.1"
   },
   "devDependencies": {
     "jest": "^30.4.2",
     "jest-mock-extended": "^4.0.1",
     "nodemon": "^3.1.14",
-    "prisma": "^7.9.1",
     "supertest": "^7.2.2"
   }
 }
